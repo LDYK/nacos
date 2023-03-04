@@ -182,11 +182,13 @@ public class ServerListManager implements Closeable {
     }
     
     public ServerListManager(NacosClientProperties properties) throws NacosException {
+        // 参数初始化
         this.isStarted = false;
+        // 从配置中获取服务器地址
         this.serverAddrsStr = properties.getProperty(PropertyKeyConst.SERVER_ADDR);
         String namespace = properties.getProperty(PropertyKeyConst.NAMESPACE);
         initParam(properties);
-        
+        // 校验
         if (StringUtils.isNotBlank(namespace)) {
             this.namespace = namespace;
             this.tenant = namespace;
@@ -210,6 +212,7 @@ public class ServerListManager implements Closeable {
                     }
                 }
             }
+            // 赋值给serverUrls，updateIfChanged()用会用来比较服务器列表有没有变化
             this.serverUrls = serverAddrs;
             this.name = initServerName(properties);
             
@@ -319,11 +322,15 @@ public class ServerListManager implements Closeable {
         if (isStarted || isFixed) {
             return;
         }
-        
+        // GetServerListTask实现了Runnable接口
         GetServerListTask getServersTask = new GetServerListTask(addressServerUrl);
+        // initServerlistRetryTimes失败重试次数，默认5次
         for (int i = 0; i < initServerlistRetryTimes && serverUrls.isEmpty(); ++i) {
+            // updateIfChanged：判断server list是否有变更，有变更则更新serverUrls，然后发布ServerlistChangeEvent
+            // 内部调用updateIfChanged()
             getServersTask.run();
             try {
+                // 等待(i + 1) * 100L 毫秒再次执行
                 this.wait((i + 1) * 100L);
             } catch (Exception e) {
                 LOGGER.warn("get serverlist fail,url: {}", addressServerUrl);
@@ -338,6 +345,7 @@ public class ServerListManager implements Closeable {
         }
         
         // executor schedules the timer task
+        // 注册getServersTask每隔30秒执行一次来刷新server list
         this.executorService.scheduleWithFixedDelay(getServersTask, 0L, 30L, TimeUnit.SECONDS);
         isStarted = true;
     }
@@ -375,13 +383,15 @@ public class ServerListManager implements Closeable {
              get serverlist from nameserver
              */
             try {
+                // getApacheServerList：根据地址请求获取服务端地址列表
+                // 判断server list是否有变更，有变更则更新serverUrls，然后发布ServerlistChangeEvent
                 updateIfChanged(getApacheServerList(url, name));
             } catch (Exception e) {
                 LOGGER.error("[" + name + "][update-serverlist] failed to update serverlist from address server!", e);
             }
         }
     }
-    
+    // 判断server list是否有变更，有变更则更新serverUrls，然后发布ServerlistChangeEvent
     private void updateIfChanged(List<String> newList) {
         if (null == newList || newList.isEmpty()) {
             LOGGER.warn("[update-serverlist] current serverlist from address server is empty!!!");
@@ -414,6 +424,7 @@ public class ServerListManager implements Closeable {
     
     private List<String> getApacheServerList(String url, String name) {
         try {
+            // 根据地址HTTP请求ServerList
             HttpRestResult<String> httpResult = nacosRestTemplate.get(url, Header.EMPTY, Query.EMPTY, String.class);
             
             if (httpResult.ok()) {
@@ -422,6 +433,7 @@ public class ServerListManager implements Closeable {
                 }
                 List<String> lines = IoUtils.readLines(new StringReader(httpResult.getData()));
                 List<String> result = new ArrayList<>(lines.size());
+                // 循环解析Server地址添加到集合中
                 for (String serverAddr : lines) {
                     if (StringUtils.isNotBlank(serverAddr)) {
                         String[] ipPort = InternetAddressUtil.splitIPPortStr(serverAddr.trim());

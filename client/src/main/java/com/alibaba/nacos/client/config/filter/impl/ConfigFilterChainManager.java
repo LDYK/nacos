@@ -37,6 +37,8 @@ public class ConfigFilterChainManager implements IConfigFilterChain {
     private final List<IConfigFilter> filters = new ArrayList<>();
     
     public ConfigFilterChainManager(Properties properties) {
+        // SPI META-INF文件中com.alibaba.nacos.api.config.filter.IConfigFilter接口
+        // 加载实现类循环初始化并添加到filters集合中
         ServiceLoader<IConfigFilter> configFilters = ServiceLoader.load(IConfigFilter.class);
         for (IConfigFilter configFilter : configFilters) {
             configFilter.init(properties);

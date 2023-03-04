@@ -74,14 +74,18 @@ public class NacosConfigService implements ConfigService {
     public NacosConfigService(Properties properties) throws NacosException {
         final NacosClientProperties clientProperties = NacosClientProperties.PROTOTYPE.derive(properties);
         ValidatorUtils.checkInitParam(clientProperties);
-        
+        // 从properties中获取Namespace配置并初始化
         initNamespace(clientProperties);
+        // 配置过滤链管理器
         this.configFilterChainManager = new ConfigFilterChainManager(clientProperties.asProperties());
+        // 创建服务列表管理器并启动 参考NacosNamingService
         ServerListManager serverListManager = new ServerListManager(clientProperties);
+        // 非isStarted且非isFixed的条件下会执行GetServerListTask，失败重试次数为5次，如果serverUrls不为空则注册该getServersTask每隔30秒执行一次来刷新server list
         serverListManager.start();
-        
+        // 创建客户端worker
         this.worker = new ClientWorker(this.configFilterChainManager, serverListManager, clientProperties);
         // will be deleted in 2.0 later versions
+        // 服务http代理
         agent = new ServerHttpAgent(serverListManager);
         
     }

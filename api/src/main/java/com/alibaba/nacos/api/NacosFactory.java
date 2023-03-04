@@ -39,6 +39,13 @@ public class NacosFactory {
      * @param properties init param
      * @return config
      * @throws NacosException Exception
+     * Nacos代码入口
+     * 1、spring-cloud-starter-alibaba-nacos-config.jar中的spring.factories配置
+     *      com.alibaba.cloud.nacos.NacosConfigBootstrapConfiguration（启动时拉取配置）
+     *
+     * 2、com.alibaba.cloud.nacos.NacosConfigBootstrapConfiguration#nacosConfigManager（启动时拉取配置）
+     * 3、com.alibaba.cloud.nacos.NacosConfigManager # NacosConfigManager（配置管理类）
+     * 4、com.alibaba.cloud.nacos.NacosConfigManager # createConfigService
      */
     public static ConfigService createConfigService(Properties properties) throws NacosException {
         return ConfigFactory.createConfigService(properties);

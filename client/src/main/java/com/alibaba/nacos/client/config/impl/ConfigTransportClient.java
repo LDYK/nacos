@@ -130,9 +130,13 @@ public abstract class ConfigTransportClient {
      * base start client.
      */
     public void start() throws NacosException {
+        // 客户端登录
         securityProxy.login(this.properties);
+        // executor为scheduledExecutorService
+        // 设置线程池定时参数，每隔5秒执行一次
         this.executor.scheduleWithFixedDelay(() -> securityProxy.login(properties), 0,
                 this.securityInfoRefreshIntervalMills, TimeUnit.MILLISECONDS);
+        // 调用子类ConfigRpcTransportClient的方法
         startInternal();
     }
     

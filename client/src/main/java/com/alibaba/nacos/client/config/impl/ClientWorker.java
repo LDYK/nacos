@@ -412,11 +412,13 @@ public class ClientWorker implements Closeable {
     public ClientWorker(final ConfigFilterChainManager configFilterChainManager, ServerListManager serverListManager,
             final NacosClientProperties properties) throws NacosException {
         this.configFilterChainManager = configFilterChainManager;
-        
+        // 初始化超时时间，长轮询的超时时间，默认为30秒
         init(properties);
         
         agent = new ConfigRpcTransportClient(properties, serverListManager);
+        // 根据CPU核数计算线程数
         int count = ThreadUtils.getSuitableThreadCount(THREAD_MULTIPLE);
+        // 2 < 线程池coreSize <= CPU核数
         ScheduledExecutorService executorService = Executors
                 .newScheduledThreadPool(Math.max(count, MIN_THREAD_NUM), r -> {
                     Thread t = new Thread(r);
@@ -459,7 +461,7 @@ public class ClientWorker implements Closeable {
     }
     
     private void init(NacosClientProperties properties) {
-        
+        // 长轮询的超时时间，默认为30秒，此参数会被放到请求头中带到服务端，服务端会根据该参数去做长轮询的hold
         timeout = Math.max(ConvertUtils.toInt(properties.getProperty(PropertyKeyConst.CONFIG_LONG_POLL_TIMEOUT),
                 Constants.CONFIG_LONG_POLL_TIMEOUT), Constants.MIN_CONFIG_LONG_POLL_TIMEOUT);
         
@@ -694,13 +696,18 @@ public class ClientWorker implements Closeable {
         
         @Override
         public void startInternal() {
+            // executor 是 ScheduledExecutorService executor
+            // 每隔5s执行一次
             executor.schedule(() -> {
+                // 线程池没有完成关闭
                 while (!executor.isShutdown() && !executor.isTerminated()) {
                     try {
+                        // 从阻塞队列listenExecutebell中获取数据，未获取到超时时间为5s
                         listenExecutebell.poll(5L, TimeUnit.SECONDS);
                         if (executor.isShutdown() || executor.isTerminated()) {
                             continue;
                         }
+                        // 执行配置监听
                         executeConfigListen();
                     } catch (Throwable e) {
                         LOGGER.error("[ rpc listen execute ] [rpc listen] exception", e);
@@ -722,7 +729,7 @@ public class ClientWorker implements Closeable {
         
         @Override
         public void executeConfigListen() {
-            
+            //
             Map<String, List<CacheData>> listenCachesMap = new HashMap<>(16);
             Map<String, List<CacheData>> removeListenCachesMap = new HashMap<>(16);
             long now = System.currentTimeMillis();
