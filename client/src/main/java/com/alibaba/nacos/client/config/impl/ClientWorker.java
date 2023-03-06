@@ -729,11 +729,14 @@ public class ClientWorker implements Closeable {
         
         @Override
         public void executeConfigListen() {
-            //
+            // 监听器列表映射map
             Map<String, List<CacheData>> listenCachesMap = new HashMap<>(16);
+            // 移除监听器的列表映射
             Map<String, List<CacheData>> removeListenCachesMap = new HashMap<>(16);
             long now = System.currentTimeMillis();
+            // 是否需要全量同步（5 分钟全量同步一次）
             boolean needAllSync = now - lastAllSyncTime >= ALL_SYNC_INTERNAL;
+            // 循环cacheMap，并检查cacheMap中CacheData是否同步server，md是否一致，如果md不一致，则需要用最新的md5来接收配置变更
             for (CacheData cache : cacheMap.get().values()) {
                 
                 synchronized (cache) {
