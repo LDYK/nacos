@@ -145,7 +145,18 @@ public class NacosNamingService implements NamingService {
     public void registerInstance(String serviceName, Instance instance) throws NacosException {
         registerInstance(serviceName, Constants.DEFAULT_GROUP, instance);
     }
-    
+
+    /**
+     * 注册中心入口
+     * 1、解析spring-cloud-alibaba-nacos-discovery.jar中的spring.factories文件，引入了NacosDiscoveryAutoConfiguration、NacosAutoServiceRegistration两个bean
+     *  1)、NacosDiscoveryAutoConfiguration加载了NacosDiscoveryProperties，解析并存储spring.cloud.nacos.discovery配置信息
+     *  2)、NacosServiceRegistryAutoConfiguration加载了NacosAutoServiceRegistration，该类继承了AbstractAutoServiceRegistration抽象类。
+     * 2、AbstractAutoServiceRegistration抽象类实现了ApplicationContextAware、ApplicationListener接口，并分别实现了setApplicationContext()和onApplicationEvent()方法。如果实现了ApplicationListener<WebServerInitializedEvent>接口，那么它就是一个监听器，监听WebServerInitializedEvent事件（容器启动事件）。
+     * 3、Spring容器启动的时候，会调用AbstractAutoServiceRegistration抽象类重写的onApplicationEvent()方法。
+     * 4、onApplicationEvent()方法会调用当前类的bind()方法，bind()方法调用当前类的this.start()方法，start()方法调用当前类的register()方法，register()方法调用NacosServiceRegistry类的register()。
+     * 5、NacosServiceRegistry类的register()方法先获取namingService、serviceId、group等信息，再调用NacosNamingService类的registerInstance()方法，进行具体的实例注册操作。
+     * 6、【正式进入Nacos源码】NacosNamingService类的registerInstance()方法
+     **/
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
         NamingUtils.checkInstanceIsLegal(instance);
