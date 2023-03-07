@@ -150,6 +150,7 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         params.put(HEALTHY_PARAM, String.valueOf(instance.isHealthy()));
         params.put(EPHEMERAL_PARAM, String.valueOf(instance.isEphemeral()));
         params.put(META_PARAM, JacksonUtils.toJson(instance.getMetadata()));
+        // 发送请求，注册服务。请求路径为：/v1/ns/instance，对应InstanceController中的register()
         reqApi(UtilAndComs.nacosUrlInstance, params, HttpMethod.POST);
     }
     
