@@ -97,7 +97,7 @@ public class NamingClientProxyDelegate implements NamingClientProxy {
     public void registerService(String serviceName, String groupName, Instance instance) throws NacosException {
         // getExecuteClientProxy()因为ephemeral的默认值都是true，所以默认获取grpcClientProxy
         // GrpcClientProxy：通过registerInstance注册到服务端
-        // NamingHttpClientProxy：
+        // NamingHttpClientProxy：通过/nacos/v1/ns/instance注册到服务端
         getExecuteClientProxy(instance).registerService(serviceName, groupName, instance);
     }
     

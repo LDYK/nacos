@@ -155,12 +155,13 @@ public class NacosNamingService implements NamingService {
      * 3、Spring容器启动的时候，会调用AbstractAutoServiceRegistration抽象类重写的onApplicationEvent()方法。
      * 4、onApplicationEvent()方法会调用当前类的bind()方法，bind()方法调用当前类的this.start()方法，start()方法调用当前类的register()方法，register()方法调用NacosServiceRegistry类的register()。
      * 5、NacosServiceRegistry类的register()方法先配置文件中配置的服务信息（服务名、IP、Port等等）封装到instance对象中，再调用NacosNamingService类的registerInstance()方法，进行实例注册操作。
-     * 6、【正式进入Nacos源码】NacosNamingService类的registerInstance()方法，registerService()方法。NacosNamingService的init()方法根据配置协议
+     * 6、【正式进入Nacos源码】NacosNamingService类的registerInstance()方法调用NamingClientProxyDelegate类的registerService()方法。NacosNamingService的init()方法根据配置提前初始化clientProxy等实例。
+     * 7、NamingClientProxyDelegate类的registerService()方法，
      **/
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
         NamingUtils.checkInstanceIsLegal(instance);
-        //
+        // 调用NamingClientProxyDelegate的registerService()方法
         clientProxy.registerService(serviceName, groupName, instance);
     }
     
