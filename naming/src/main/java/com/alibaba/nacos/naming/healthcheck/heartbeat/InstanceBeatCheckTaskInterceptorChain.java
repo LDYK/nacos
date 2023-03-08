@@ -28,6 +28,7 @@ public class InstanceBeatCheckTaskInterceptorChain extends AbstractNamingInterce
     private static final InstanceBeatCheckTaskInterceptorChain INSTANCE = new InstanceBeatCheckTaskInterceptorChain();
     
     private InstanceBeatCheckTaskInterceptorChain() {
+        // 调用父类构造器
         super(AbstractBeatCheckInterceptor.class);
     }
     

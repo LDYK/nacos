@@ -46,16 +46,21 @@ public class UnhealthyInstanceChecker implements InstanceBeatChecker {
     
     @Override
     public void doCheck(Client client, Service service, HealthCheckInstancePublishInfo instance) {
+        //原来是健康现在是不健康的条件判断
         if (instance.isHealthy() && isUnhealthy(service, instance)) {
+            // 修改healthy状态，并发布事件
             changeHealthyStatus(client, service, instance);
         }
     }
-    
+
+    // 距离上次心跳时间已经超过超时时间
     private boolean isUnhealthy(Service service, HealthCheckInstancePublishInfo instance) {
         long beatTimeout = getTimeout(service, instance);
         return System.currentTimeMillis() - instance.getLastHeartBeatTime() > beatTimeout;
     }
-    
+
+    // 从扩展数据中去超时时间
+    // 如果没有取到则设置默认值15s
     private long getTimeout(Service service, InstancePublishInfo instance) {
         Optional<Object> timeout = getTimeoutFromMetadata(service, instance);
         if (!timeout.isPresent()) {
@@ -69,7 +74,8 @@ public class UnhealthyInstanceChecker implements InstanceBeatChecker {
                 .getInstanceMetadata(service, instance.getMetadataId());
         return instanceMetadata.map(metadata -> metadata.getExtendData().get(PreservedMetadataKeys.HEART_BEAT_TIMEOUT));
     }
-    
+
+    // 实例健康状态设置为false，并发布服务和客户端变更事件
     private void changeHealthyStatus(Client client, Service service, HealthCheckInstancePublishInfo instance) {
         instance.setHealthy(false);
         Loggers.EVT_LOG

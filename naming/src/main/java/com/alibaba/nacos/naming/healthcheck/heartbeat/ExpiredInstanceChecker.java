@@ -48,12 +48,16 @@ public class ExpiredInstanceChecker implements InstanceBeatChecker {
     
     @Override
     public void doCheck(Client client, Service service, HealthCheckInstancePublishInfo instance) {
+        // 过期实例配置 默认是true
         boolean expireInstance = ApplicationUtils.getBean(GlobalConfig.class).isExpireInstance();
         if (expireInstance && isExpireInstance(service, instance)) {
             deleteIp(client, service, instance);
         }
     }
-    
+
+
+    // 优先从元数据获取deleteiptimeout 参数否则设置默认值30s
+    // 超过deleteiptimeout 时间则代表过期实例
     private boolean isExpireInstance(Service service, HealthCheckInstancePublishInfo instance) {
         long deleteTimeout = getTimeout(service, instance);
         return System.currentTimeMillis() - instance.getLastHeartBeatTime() > deleteTimeout;
@@ -75,6 +79,7 @@ public class ExpiredInstanceChecker implements InstanceBeatChecker {
     
     private void deleteIp(Client client, Service service, InstancePublishInfo instance) {
         Loggers.SRV_LOG.info("[AUTO-DELETE-IP] service: {}, ip: {}", service.toString(), JacksonUtils.toJson(instance));
+        // 从客户端的服务列表移除该服务
         client.removeServiceInstance(service);
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientDeregisterServiceEvent(service, client.getClientId()));
         NotifyCenter.publishEvent(new MetadataEvent.InstanceMetadataEvent(service, instance.getMetadataId(), true));

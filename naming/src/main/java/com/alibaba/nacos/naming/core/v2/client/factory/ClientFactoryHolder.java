@@ -37,12 +37,15 @@ public class ClientFactoryHolder {
     
     private ClientFactoryHolder() {
         clientFactories = new HashMap<>(4);
+        // 加载ClientFactory接口的实现类
         Collection<ClientFactory> clientFactories = NacosServiceLoader.load(ClientFactory.class);
+        // 遍历实现类
         for (ClientFactory each : clientFactories) {
             if (this.clientFactories.containsKey(each.getType())) {
                 Loggers.SRV_LOG.warn("Client type {} found multiple factory, use {} default", each.getType(),
                         each.getClass().getCanonicalName());
             }
+            // 各实现类的getType()方法都已通过ClientConstants进行标识
             this.clientFactories.put(each.getType(), each);
         }
     }

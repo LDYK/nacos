@@ -30,6 +30,7 @@ import java.util.Collection;
 public interface ClientManager {
     
     /**
+     * 创建一个新的客户端并创建心跳检查任务
      * New client connected.
      *
      * @param clientId new client id
@@ -39,6 +40,7 @@ public interface ClientManager {
     boolean clientConnected(String clientId, ClientAttributes attributes);
     
     /**
+     * 创建一个新的客户端并创建心跳检查任务
      * New client connected.
      *
      * @param client new client
@@ -87,6 +89,7 @@ public interface ClientManager {
     Collection<String> allClientId();
     
     /**
+     * 在一个集群里面判断该客户端健康检查是不是由当前的服务器负责
      * Whether the client is responsible by current server.
      *
      * @param client client

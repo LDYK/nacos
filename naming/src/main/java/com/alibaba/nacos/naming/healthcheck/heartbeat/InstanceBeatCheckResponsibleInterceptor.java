@@ -27,6 +27,7 @@ import com.alibaba.nacos.sys.utils.ApplicationUtils;
  */
 public class InstanceBeatCheckResponsibleInterceptor extends AbstractBeatCheckInterceptor {
 
+    // 心跳检查任务是否由该服务器负责
     @Override
     public boolean intercept(InstanceBeatCheckTask object) {
         return !ApplicationUtils.getBean(DistroMapper.class).responsible(object.getClient().getResponsibleId());

@@ -29,7 +29,8 @@ import java.util.Optional;
  * @author xiweng.yy
  */
 public class ServiceEnableBeatCheckInterceptor extends AbstractBeatCheckInterceptor {
-    
+
+    // 判断对该服务是否启动了客户端心跳
     @Override
     public boolean intercept(InstanceBeatCheckTask object) {
         NamingMetadataManager metadataManager = ApplicationUtils.getBean(NamingMetadataManager.class);

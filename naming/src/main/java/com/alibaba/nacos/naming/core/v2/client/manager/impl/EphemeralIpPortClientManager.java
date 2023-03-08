@@ -47,33 +47,44 @@ import java.util.concurrent.TimeUnit;
  *
  * @author xiweng.yy
  */
+
+// @DependsOn注解：表示EphemeralIpPortClientManager的实例化依赖clientServiceIndexesManager的实例化，虽然EphemeralIpPortClientManager并没持有clientServiceIndexesManager对象
+// 所谓的Bean可以是任何Bean：包括@Bean、@Component、@Configuration等一切形式
 @DependsOn("clientServiceIndexesManager")
 @Component("ephemeralIpPortClientManager")
 public class EphemeralIpPortClientManager implements ClientManager {
-    
+
+    // 以clientId为key的Client缓存
     private final ConcurrentMap<String, IpPortBasedClient> clients = new ConcurrentHashMap<>();
-    
+
+    // 提供管理Nacos Server服务器集群功能
     private final DistroMapper distroMapper;
-    
+
+    // IpPortBasedClient的工厂类
     private final ClientFactory<IpPortBasedClient> clientFactory;
     
     public EphemeralIpPortClientManager(DistroMapper distroMapper, SwitchDomain switchDomain) {
         this.distroMapper = distroMapper;
+        // 过期客户端清理任务 5s 执行一次 ExpiredClientCleaner
         GlobalExecutor.scheduleExpiredClientCleaner(new ExpiredClientCleaner(this, switchDomain), 0,
                 Constants.DEFAULT_HEART_BEAT_INTERVAL, TimeUnit.MILLISECONDS);
+        //根据[ClientConstants.EPHEMERAL_IP_PORT]类型去工厂类获取相应的clientFactory
         clientFactory = ClientFactoryHolder.getInstance().findClientFactory(ClientConstants.EPHEMERAL_IP_PORT);
     }
-    
+
+    // 通过工厂类创建新的客户端
     @Override
     public boolean clientConnected(String clientId, ClientAttributes attributes) {
         return clientConnected(clientFactory.newClient(clientId, attributes));
     }
-    
+
+    // 初始化客户端 并缓存到map中
     @Override
     public boolean clientConnected(final Client client) {
         clients.computeIfAbsent(client.getClientId(), s -> {
             Loggers.SRV_LOG.info("Client connection {} connect", client.getClientId());
             IpPortBasedClient ipPortBasedClient = (IpPortBasedClient) client;
+            // 初始化客户端，并创建心跳检查任务
             ipPortBasedClient.init();
             return ipPortBasedClient;
         });
@@ -84,7 +95,8 @@ public class EphemeralIpPortClientManager implements ClientManager {
     public boolean syncClientConnected(String clientId, ClientAttributes attributes) {
         return clientConnected(clientFactory.newSyncedClient(clientId, attributes));
     }
-    
+
+    // 从缓存中移除client 并发布 ClientEvent.ClientDisconnectEvent 事件到统一事件中心
     @Override
     public boolean clientDisconnected(String clientId) {
         Loggers.SRV_LOG.info("Client connection {} disconnect, remove instances and subscribers", clientId);
@@ -92,7 +104,9 @@ public class EphemeralIpPortClientManager implements ClientManager {
         if (null == client) {
             return true;
         }
+        // 发布断开连接事件
         NotifyCenter.publishEvent(new ClientEvent.ClientDisconnectEvent(client, isResponsibleClient(client)));
+        // 资源释放
         client.release();
         return true;
     }
@@ -111,7 +125,8 @@ public class EphemeralIpPortClientManager implements ClientManager {
     public Collection<String> allClientId() {
         return clients.keySet();
     }
-    
+
+
     @Override
     public boolean isResponsibleClient(Client client) {
         if (client instanceof IpPortBasedClient) {
@@ -119,7 +134,8 @@ public class EphemeralIpPortClientManager implements ClientManager {
         }
         return false;
     }
-    
+
+    //该方法在服务器集群间交互的时候用到 服务注册取消注册用不到目前
     @Override
     public boolean verifyClient(DistroClientVerifyInfo verifyData) {
         String clientId = verifyData.getClientId();
@@ -137,7 +153,13 @@ public class EphemeralIpPortClientManager implements ClientManager {
         }
         return false;
     }
-    
+
+
+    /**
+     * 该类的逻辑定期检查是否是一个过期的客户端 过期的含义满足下面任一个
+     * 1、超时还没有发布服务 且 超时还没有订阅服务
+     * 2、超过了客户端的过期事件
+     */
     private static class ExpiredClientCleaner implements Runnable {
         
         private final EphemeralIpPortClientManager clientManager;
@@ -159,9 +181,11 @@ public class EphemeralIpPortClientManager implements ClientManager {
                 }
             }
         }
-        
+
+        // 判断是否超时
         private boolean isExpireClient(long currentTime, IpPortBasedClient client) {
             long noUpdatedTime = currentTime - client.getLastUpdatedTime();
+            // 临时节点 && 30s未发布 && 10s未订阅
             return client.isEphemeral() && (
                     isExpirePublishedClient(noUpdatedTime, client) && isExpireSubscriberClient(noUpdatedTime, client)
                             || noUpdatedTime > ClientConfig.getInstance().getClientExpiredTime());

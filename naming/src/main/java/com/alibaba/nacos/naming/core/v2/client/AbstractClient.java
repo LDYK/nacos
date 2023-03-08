@@ -87,8 +87,10 @@ public abstract class AbstractClient implements Client {
         InstancePublishInfo result = publishers.remove(service);
         if (null != result) {
             if (result instanceof BatchInstancePublishInfo) {
+                // 批量移除，注册实例减掉 -1 * list.size()
                 MetricsMonitor.decrementIpCountWithBatchRegister(result);
             } else {
+                // 注册客户端数量-1
                 MetricsMonitor.decrementInstanceCount();
             }
             NotifyCenter.publishEvent(new ClientEvent.ClientChangedEvent(this));

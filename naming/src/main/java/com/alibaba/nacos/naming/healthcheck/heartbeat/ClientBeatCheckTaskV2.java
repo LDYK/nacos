@@ -34,11 +34,14 @@ import java.util.Collection;
  * @author nkorange
  */
 public class ClientBeatCheckTaskV2 extends AbstractExecuteTask implements BeatCheckTask, NacosHealthCheckTask {
-    
+
+    // 客户端对象
     private final IpPortBasedClient client;
-    
+
+    //就是 client.getResponsibleId
     private final String taskId;
-    
+
+    // 任务拦截器链
     private final InstanceBeatCheckTaskInterceptorChain interceptorChain;
     
     public ClientBeatCheckTaskV2(IpPortBasedClient client) {
@@ -60,21 +63,30 @@ public class ClientBeatCheckTaskV2 extends AbstractExecuteTask implements BeatCh
     public String getTaskId() {
         return taskId;
     }
-    
+
+    // 健康检查
+    // 执行心跳检查任务是在ClientBeatCheckTaskV2 里面嵌入一个新的InstanceBeatCheckTask任务
+    // 真正的心跳检查逻辑是在InstanceBeatCheckTask上的拦截器都执行完毕后
+    // 再执行InstanceBeatCheckTask的passIntercept方法完成一次心跳检查
     @Override
     public void doHealthCheck() {
         try {
+            // 轮询该客户端发布的所有服务列表
             Collection<Service> services = client.getAllPublishedService();
             for (Service each : services) {
+                // 获取服务下的实例信息
                 HealthCheckInstancePublishInfo instance = (HealthCheckInstancePublishInfo) client
                         .getInstancePublishInfo(each);
+                // 拦截器链处理完InstanceBeatCheckTask后执行
+                // InstanceBeatCheckTask.passIntercept()方法
                 interceptorChain.doInterceptor(new InstanceBeatCheckTask(client, each, instance));
             }
         } catch (Exception e) {
             Loggers.SRV_LOG.warn("Exception while processing client beat time out.", e);
         }
     }
-    
+
+    // 定时任务的执行入口，实现Runnable方法
     @Override
     public void run() {
         doHealthCheck();
