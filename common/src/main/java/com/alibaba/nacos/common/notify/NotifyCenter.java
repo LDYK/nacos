@@ -294,11 +294,11 @@ public class NotifyCenter {
         if (ClassUtils.isAssignableFrom(SlowEvent.class, eventType)) {
             return INSTANCE.sharePublisher.publish(event);
         }
-        
         final String topic = ClassUtils.getCanonicalName(eventType);
-        
+        // 根据事件名称获取发布者类
         EventPublisher publisher = INSTANCE.publisherMap.get(topic);
         if (publisher != null) {
+            // 执行发布操作
             return publisher.publish(event);
         }
         if (event.isPluginEvent()) {

@@ -47,6 +47,7 @@ public class ClientOperationEvent extends Event {
     
     /**
      * Client register service event.
+     * 触发更新 publisherIndexes（保存 service => clientId 的 Map<Service, Set<String>>，即哪些客户端注册了这个服务的索引），同时也触发一个 ServiceChangedEvent，该事件负责向监听该服务的客户端进行推送
      */
     public static class ClientRegisterServiceEvent extends ClientOperationEvent {
         

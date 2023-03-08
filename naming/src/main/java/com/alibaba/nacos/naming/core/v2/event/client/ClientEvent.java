@@ -40,6 +40,7 @@ public class ClientEvent extends Event {
     
     /**
      * Client changed event. Happened when {@code Client} add or remove service.
+     * 触发 server 节点之间的数据同步（distro 协议）
      */
     public static class ClientChangedEvent extends ClientEvent {
         
