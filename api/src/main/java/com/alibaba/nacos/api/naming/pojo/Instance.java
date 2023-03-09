@@ -53,6 +53,7 @@ public class Instance implements Serializable {
     
     /**
      * instance weight.
+     * 权重(不能小于1)
      */
     private double weight = 1.0D;
     
@@ -75,6 +76,7 @@ public class Instance implements Serializable {
     
     /**
      * cluster information of instance.
+     * 集群名
      */
     private String clusterName;
     

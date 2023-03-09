@@ -147,10 +147,14 @@ public class NacosNamingService implements NamingService {
     }
 
     /**
+     * 参考文档路径：https://blog.csdn.net/wuchsh123/article/details/124911607?spm=1001.2014.3001.5502
      * 注册中心入口
      * 1、解析spring-cloud-alibaba-nacos-discovery.jar中的spring.factories文件，引入了NacosDiscoveryAutoConfiguration、NacosAutoServiceRegistration两个bean
      *  1)、NacosDiscoveryAutoConfiguration加载了NacosDiscoveryProperties，解析并存储spring.cloud.nacos.discovery配置信息
-     *  2)、NacosServiceRegistryAutoConfiguration加载了NacosAutoServiceRegistration，该类继承了AbstractAutoServiceRegistration抽象类。
+     *  2)、NacosServiceRegistryAutoConfiguration创建了NacosServiceRegistry、NacosRegistration、NacosAutoServiceRegistration等3个Bean。
+     *      a、NacosRegistration：封装服务注册的基本信息 包括服务的serviceId、 服务的Ip 和 port 、cluster(所属集群名) 、weight(实例的权重)、isSecure、uri(http[https]://ip:port/)、metaData(实例扩展数据或者元数据)等，除了namingService是手动创建的， 其他的这些属性基本上都是通过项目的属性文件配置的
+     *      b、NacosAutoServiceRegistration：继承自AbstractAutoServiceRegistration : 服务启动后父类会监听web server 初始化事件从而触发当前服务实例的注册流程
+     *      c、NacosServiceRegistry：负责服务的注册和下线功能
      * 2、AbstractAutoServiceRegistration抽象类实现了ApplicationContextAware、ApplicationListener接口，并分别实现了setApplicationContext()和onApplicationEvent()方法。如果实现了ApplicationListener<WebServerInitializedEvent>接口，那么它就是一个监听器，监听WebServerInitializedEvent事件（容器启动事件）。
      * 3、Spring容器启动的时候，会调用AbstractAutoServiceRegistration抽象类重写的onApplicationEvent()方法。
      * 4、onApplicationEvent()方法会调用当前类的bind()方法，bind()方法调用当前类的this.start()方法，start()方法调用当前类的register()方法，register()方法调用NacosServiceRegistry类的register()。
