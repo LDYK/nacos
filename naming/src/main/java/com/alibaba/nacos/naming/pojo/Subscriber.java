@@ -29,21 +29,30 @@ import java.util.Objects;
 public class Subscriber implements Serializable {
     
     private static final long serialVersionUID = -6256968317172033867L;
-    
+
+    //订阅费的ip和端口
+    //比如udp推动的话就是客户端的ip:udp端口号
     private String addrStr;
-    
+
+    //客户端sdk的版本号 包括客户端的语言比如java及版本号比如1.1.4等信息
     private String agent;
-    
+
+    //可以为空 客户端标识
     private String app;
-    
+
+    //客户端ip
     private String ip;
-    
+
+    //客户端端口比如udp 端口
     private int port;
-    
+
+    //命名空间默认是public
     private String namespaceId;
-    
+
+    //带有组名的服务名
     private String serviceName;
-    
+
+    //集群名称可以为空
     private String cluster;
     
     public Subscriber() {

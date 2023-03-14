@@ -154,7 +154,9 @@ public final class ClassUtils {
      * @return the value indicating whether objects of the type can be assigned to objects of this class.
      */
     public static boolean isAssignableFrom(Class clazz, Class cls) {
+        // 空校验
         Objects.requireNonNull(cls, "cls");
+        // 确定此Class对象表示的类或接口是否与指定的Class参数表示的类或接口相同，或者是它们的超类或超接口。如果是，则返回true ；否则返回false 。
         return clazz.isAssignableFrom(cls);
     }
     

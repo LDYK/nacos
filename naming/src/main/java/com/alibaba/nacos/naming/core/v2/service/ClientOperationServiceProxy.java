@@ -66,12 +66,14 @@ public class ClientOperationServiceProxy implements ClientOperationService {
     
     @Override
     public void deregisterInstance(Service service, Instance instance, String clientId) {
+        // 第一校验服务管理器中是否存在该服务
         if (!ServiceManager.getInstance().containSingleton(service)) {
             Loggers.SRV_LOG.warn("remove instance from non-exist service: {}", service);
             return;
         }
         // 根据isEphemeral判断是选择执行临时实例operation还是持久化实例operation
         final ClientOperationService operationService = chooseClientOperationService(instance);
+        // EphemeralClientOperationServiceImpl 临时客户端管理器
         operationService.deregisterInstance(service, instance, clientId);
     }
     

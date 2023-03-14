@@ -277,6 +277,7 @@ public class NotifyCenter {
      */
     public static boolean publishEvent(final Event event) {
         try {
+            // 事件中心统一发布各类事件
             return publishEvent(event.getClass(), event);
         } catch (Throwable ex) {
             LOGGER.error("There was an exception to the message publishing : ", ex);
@@ -291,14 +292,15 @@ public class NotifyCenter {
      * @param event     event instance.
      */
     private static boolean publishEvent(final Class<? extends Event> eventType, final Event event) {
+        // 确定此Class对象表示的类或接口是否与指定的Class参数表示的类或接口相同，或者是它们的超类或超接口。如果是，则返回true ；否则返回false .
         if (ClassUtils.isAssignableFrom(SlowEvent.class, eventType)) {
             return INSTANCE.sharePublisher.publish(event);
         }
         final String topic = ClassUtils.getCanonicalName(eventType);
-        // 根据事件名称获取发布者类
+        // 根据事件名称获取发布者实现类类
         EventPublisher publisher = INSTANCE.publisherMap.get(topic);
         if (publisher != null) {
-            // 执行发布操作
+            // 执行发布操作，例：NamingEventPublisher
             return publisher.publish(event);
         }
         if (event.isPluginEvent()) {

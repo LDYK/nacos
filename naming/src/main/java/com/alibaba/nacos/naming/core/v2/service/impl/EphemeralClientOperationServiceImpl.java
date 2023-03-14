@@ -90,6 +90,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
                     String.format("Current service %s is persistent service, can't batch register ephemeral instance.",
                             singleton.getGroupedServiceName()));
         }
+        // 从客户端管理器拿到客户端
         Client client = clientManager.getClient(clientId);
         if (!clientIsLegal(client, clientId)) {
             return;
@@ -110,23 +111,30 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void deregisterInstance(Service service, Instance instance, String clientId) {
-        //服务管理器中是否存在该服务
+        // 第二次校验服务管理器中是否存在该服务
         //在EphemeralClientOperationServiceImpl服务注册逻辑里第一行代码就是交给服务管理器管理服务
         if (!ServiceManager.getInstance().containSingleton(service)) {
             Loggers.SRV_LOG.warn("remove instance from non-exist service: {}", service);
             return;
         }
-        //构建服务对象
+        // 从服务管理器获取服务
         Service singleton = ServiceManager.getInstance().getSingleton(service);
+        // 从客户端管理器获取客户端
         Client client = clientManager.getClient(clientId);
+        // 客户端合法性校验
         if (!clientIsLegal(client, clientId)) {
             return;
         }
+        // 从客户端移除服务
         InstancePublishInfo removedInstance = client.removeServiceInstance(singleton);
+        //设置最近更新时间
         client.setLastUpdatedTime();
         client.recalculateRevision();
         if (null != removedInstance) {
+            // 发布客户端下线事件
+            // 从ClientServiceIndexesManager 列表表删除服务下该client的发布信息 和 服务元数据变更事件
             NotifyCenter.publishEvent(new ClientOperationEvent.ClientDeregisterServiceEvent(singleton, clientId));
+            //把该实例的元数据过期 参考 NamingMetadataManager
             NotifyCenter.publishEvent(
                     new MetadataEvent.InstanceMetadataEvent(singleton, removedInstance.getMetadataId(), true));
         }
@@ -134,13 +142,18 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void subscribeService(Service service, Subscriber subscriber, String clientId) {
+        //首先从服务管理器中去查询服务 查询不到 就用当前的
         Service singleton = ServiceManager.getInstance().getSingletonIfExist(service).orElse(service);
+        //从客户端管理器获取客户端对象
         Client client = clientManager.getClient(clientId);
+        //校验逻辑很简单 1、是否为空 2、是否是临时节点
         if (!clientIsLegal(client, clientId)) {
             return;
         }
+        //客户端自己为服务的订阅者
         client.addServiceSubscriber(singleton, subscriber);
         client.setLastUpdatedTime();
+        //发布客户端订阅事件
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientSubscribeServiceEvent(singleton, clientId));
     }
     

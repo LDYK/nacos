@@ -110,7 +110,8 @@ public abstract class AbstractClient implements Client {
     public Collection<Service> getAllPublishedService() {
         return publishers.keySet();
     }
-    
+
+    //该客户端的subscribers订阅者记录里面加一个记录
     @Override
     public boolean addServiceSubscriber(Service service, Subscriber subscriber) {
         if (null == subscribers.put(service, subscriber)) {

@@ -145,6 +145,7 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     private void addSubscriberIndexes(Service service, String clientId) {
         subscriberIndexes.computeIfAbsent(service, key -> new ConcurrentHashSet<>());
         // Fix #5404, Only first time add need notify event.
+        // 在订阅注册表加一条记录 并发布服务订阅事件
         if (subscriberIndexes.get(service).add(clientId)) {
             NotifyCenter.publishEvent(new ServiceEvent.ServiceSubscribedEvent(service, clientId));
         }

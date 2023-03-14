@@ -320,9 +320,11 @@ public class InstanceController {
         int udpPort = Integer.parseInt(WebUtils.optional(request, "udpPort", "0"));
         boolean healthyOnly = Boolean.parseBoolean(WebUtils.optional(request, "healthyOnly", "false"));
         String app = WebUtils.optional(request, "app", StringUtils.EMPTY);
-        
+        //构建订阅者
         Subscriber subscriber = new Subscriber(clientIP + ":" + udpPort, agent, app, clientIP, namespaceId, serviceName,
                 udpPort, clusters);
+        //查询服务实例
+        //这里 getInstanceOperator() 得到的是 InstanceOperatorClientImpl 类型对象
         return getInstanceOperator().listInstance(namespaceId, serviceName, subscriber, clusters, healthyOnly);
     }
     
