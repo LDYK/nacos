@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 @Component("ephemeralIpPortClientManager")
 public class EphemeralIpPortClientManager implements ClientManager {
 
-    // 以clientId为key的Client缓存
+    // 以clientId为key的Client缓存，clientId格式：ip:port#ephemeral
     private final ConcurrentMap<String, IpPortBasedClient> clients = new ConcurrentHashMap<>();
 
     // 提供管理Nacos Server服务器集群功能

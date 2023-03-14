@@ -70,6 +70,7 @@ public class ClientOperationServiceProxy implements ClientOperationService {
             Loggers.SRV_LOG.warn("remove instance from non-exist service: {}", service);
             return;
         }
+        // 根据isEphemeral判断是选择执行临时实例operation还是持久化实例operation
         final ClientOperationService operationService = chooseClientOperationService(instance);
         operationService.deregisterInstance(service, instance, clientId);
     }

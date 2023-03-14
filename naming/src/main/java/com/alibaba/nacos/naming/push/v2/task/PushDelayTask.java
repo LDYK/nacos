@@ -24,18 +24,25 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
+ *
+ * 延时推送订阅者任务
+ *
  * Nacos naming push delay task.
  *
  * @author xiweng.yy
  */
 public class PushDelayTask extends AbstractDelayTask {
-    
+
+    // 服务信息
     private final Service service;
-    
+
+    //是否推送所有订阅者
     private boolean pushToAll;
-    
+
+    //推送的client列表
     private Set<String> targetClients;
-    
+
+    // 没有targetClient参数 代表推送所有的客户端
     public PushDelayTask(Service service, long delay) {
         this.service = service;
         pushToAll = true;
@@ -43,7 +50,8 @@ public class PushDelayTask extends AbstractDelayTask {
         setTaskInterval(delay);
         setLastProcessTime(System.currentTimeMillis());
     }
-    
+
+    //推送到指定的客户端
     public PushDelayTask(Service service, long delay, String targetClient) {
         this.service = service;
         this.pushToAll = false;
@@ -52,7 +60,10 @@ public class PushDelayTask extends AbstractDelayTask {
         setTaskInterval(delay);
         setLastProcessTime(System.currentTimeMillis());
     }
-    
+
+    //任务的合并 如果新老任务有一个是推送所有订阅者 那就推送所有订阅者
+    //如果新老任务都是指定推送，那就叠加
+    //设置较小的处理时间为新的处理时间
     @Override
     public void merge(AbstractDelayTask task) {
         if (!(task instanceof PushDelayTask)) {

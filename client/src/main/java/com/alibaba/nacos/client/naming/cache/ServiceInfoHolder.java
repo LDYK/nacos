@@ -63,7 +63,8 @@ public class ServiceInfoHolder implements Closeable {
     private final FailoverReactor failoverReactor;
     
     private final boolean pushEmptyProtection;
-    
+
+    // 服务列表的缓存和failover的目录
     private String cacheDir;
     
     private String notifierEventScope;

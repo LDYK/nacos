@@ -63,6 +63,7 @@ public class NacosNamingService implements NamingService {
     /**
      * Each Naming service should have different namespace.
      */
+    // 服务所属命名空间
     private String namespace;
     
     private String logName;
@@ -212,9 +213,11 @@ public class NacosNamingService implements NamingService {
     public void deregisterInstance(String serviceName, Instance instance) throws NacosException {
         deregisterInstance(serviceName, Constants.DEFAULT_GROUP, instance);
     }
-    
+
+    //服务下线
     @Override
     public void deregisterInstance(String serviceName, String groupName, Instance instance) throws NacosException {
+        // 调用NamingClientProxyDelegate类的方法
         clientProxy.deregisterService(serviceName, groupName, instance);
     }
     
@@ -255,18 +258,23 @@ public class NacosNamingService implements NamingService {
             throws NacosException {
         return getAllInstances(serviceName, Constants.DEFAULT_GROUP, clusters, subscribe);
     }
-    
+
+
+    // 查询服务下的实例列表
     @Override
     public List<Instance> getAllInstances(String serviceName, String groupName, List<String> clusters,
             boolean subscribe) throws NacosException {
         ServiceInfo serviceInfo;
         String clusterString = StringUtils.join(clusters, ",");
+        // 如果subscribe 为true 从本地获取[本地没有再从远程拉取]
         if (subscribe) {
+            // 优先从本地列表获取
             serviceInfo = serviceInfoHolder.getServiceInfo(serviceName, groupName, clusterString);
             if (null == serviceInfo || !clientProxy.isSubscribed(serviceName, groupName, clusterString)) {
                 serviceInfo = clientProxy.subscribe(serviceName, groupName, clusterString);
             }
         } else {
+            // 如果subscribe 为false 直接从从远程拉取
             serviceInfo = clientProxy.queryInstancesOfService(serviceName, groupName, clusterString, 0, false);
         }
         List<Instance> list;
@@ -315,7 +323,8 @@ public class NacosNamingService implements NamingService {
             throws NacosException {
         return selectInstances(serviceName, Constants.DEFAULT_GROUP, clusters, healthy, subscribe);
     }
-    
+
+    // 根据  healthy 状态筛选实例
     @Override
     public List<Instance> selectInstances(String serviceName, String groupName, List<String> clusters, boolean healthy,
             boolean subscribe) throws NacosException {
@@ -332,7 +341,8 @@ public class NacosNamingService implements NamingService {
         }
         return selectInstances(serviceInfo, healthy);
     }
-    
+
+    //筛选健康 可用 权重 >0 的实例
     private List<Instance> selectInstances(ServiceInfo serviceInfo, boolean healthy) {
         List<Instance> list;
         if (serviceInfo == null || CollectionUtils.isEmpty(list = serviceInfo.getHosts())) {
@@ -387,7 +397,8 @@ public class NacosNamingService implements NamingService {
             throws NacosException {
         return selectOneHealthyInstance(serviceName, Constants.DEFAULT_GROUP, clusters, subscribe);
     }
-    
+
+    // 根据随机权重算法选择一个健康的节点
     @Override
     public Instance selectOneHealthyInstance(String serviceName, String groupName, List<String> clusters,
             boolean subscribe) throws NacosException {
@@ -419,7 +430,8 @@ public class NacosNamingService implements NamingService {
     public void subscribe(String serviceName, List<String> clusters, EventListener listener) throws NacosException {
         subscribe(serviceName, Constants.DEFAULT_GROUP, clusters, listener);
     }
-    
+
+    // 订阅服务监听器
     @Override
     public void subscribe(String serviceName, String groupName, List<String> clusters, EventListener listener)
             throws NacosException {
@@ -445,7 +457,8 @@ public class NacosNamingService implements NamingService {
     public void unsubscribe(String serviceName, List<String> clusters, EventListener listener) throws NacosException {
         unsubscribe(serviceName, Constants.DEFAULT_GROUP, clusters, listener);
     }
-    
+
+    // 取消服务监听器
     @Override
     public void unsubscribe(String serviceName, String groupName, List<String> clusters, EventListener listener)
             throws NacosException {
@@ -471,18 +484,21 @@ public class NacosNamingService implements NamingService {
             throws NacosException {
         return getServicesOfServer(pageNo, pageSize, Constants.DEFAULT_GROUP, selector);
     }
-    
+
+    // 根据 groupName 和  selector 查询service 名称列表
     @Override
     public ListView<String> getServicesOfServer(int pageNo, int pageSize, String groupName, AbstractSelector selector)
             throws NacosException {
         return clientProxy.getServiceList(pageNo, pageSize, groupName, selector);
     }
-    
+
+    // 查询所有被订阅监听器的服务列表
     @Override
     public List<ServiceInfo> getSubscribeServices() {
         return changeNotifier.getSubscribeServices();
     }
-    
+
+    // 查询服务器的状态
     @Override
     public String getServerStatus() {
         return clientProxy.serverHealthy() ? UP : DOWN;

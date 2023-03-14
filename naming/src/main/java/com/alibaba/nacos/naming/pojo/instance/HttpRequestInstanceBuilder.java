@@ -140,10 +140,12 @@ public class HttpRequestInstanceBuilder {
     
     /**
      * TODO use spi and metadata info to generate instanceId.
+     * 设置instanceid， 格式：ip#port#clusterName#serviceName
      */
     private void setInstanceId(Instance instance) {
         DefaultInstanceIdGenerator idGenerator = new DefaultInstanceIdGenerator(instance.getServiceName(),
                 instance.getClusterName(), instance.getIp(), instance.getPort());
+        // 生成instanceid
         instance.setInstanceId(idGenerator.generateInstanceId());
     }
 }

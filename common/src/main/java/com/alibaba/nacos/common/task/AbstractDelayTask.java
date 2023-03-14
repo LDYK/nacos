@@ -25,16 +25,19 @@ package com.alibaba.nacos.common.task;
 public abstract class AbstractDelayTask implements NacosTask {
     
     /**
+     * 任务处理间隔 多久处理一次 单位毫秒
      * Task time interval between twice processing, unit is millisecond.
      */
     private long taskInterval;
     
     /**
+     * 任务最近处理 单位毫秒 对象创建时 lastProcessTime 为当前时间
      * The time which was processed at last time, unit is millisecond.
      */
     private long lastProcessTime;
     
     /**
+     * 默认间隔时间1秒钟
      * The default time interval, in milliseconds, between tasks.
      */
     protected static final long INTERVAL = 1000L;

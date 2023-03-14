@@ -101,15 +101,18 @@ public class InstanceController {
     @PostMapping
     @Secured(action = ActionTypes.WRITE)
     public String register(HttpServletRequest request) throws Exception {
-        
+        //读取请求的namespaceId字段值 默认时public
         final String namespaceId = WebUtils
                 .optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
+        //读取请求的服务名称字段值，格式要求groupname@@servicename
         final String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
+        //服务名称格式校验
         NamingUtils.checkServiceNameFormat(serviceName);
-        
+        //封装Instance 对象
+        //instanceId 的生成逻辑 格式比如： ip#port#clusterName#serviceName
         final Instance instance = HttpRequestInstanceBuilder.newBuilder()
                 .setDefaultInstanceEphemeral(switchDomain.isDefaultInstanceEphemeral()).setRequest(request).build();
-        // 执行注册
+        //这里 getInstanceOperator() 得到的是 InstanceOperatorClientImpl 类型对象
         getInstanceOperator().registerInstance(namespaceId, serviceName, instance);
         NotifyCenter.publishEvent(new RegisterInstanceTraceEvent(System.currentTimeMillis(), "", false, namespaceId,
                 NamingUtils.getGroupName(serviceName), NamingUtils.getServiceName(serviceName), instance.getIp(),
@@ -128,12 +131,17 @@ public class InstanceController {
     @DeleteMapping
     @Secured(action = ActionTypes.WRITE)
     public String deregister(HttpServletRequest request) throws Exception {
+        //根据请求参数构建Instance
         Instance instance = HttpRequestInstanceBuilder.newBuilder()
                 .setDefaultInstanceEphemeral(switchDomain.isDefaultInstanceEphemeral()).setRequest(request).build();
+        //获取命名空间id
         String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
+        //带有groupname的服务名
         String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
+        //检查服务吗是不是带有groupname groupName@@serviceName
         NamingUtils.checkServiceNameFormat(serviceName);
-        
+
+        //这里 getInstanceOperator() 得到的是 InstanceOperatorClientImpl 类型对象
         getInstanceOperator().removeInstance(namespaceId, serviceName, instance);
         NotifyCenter.publishEvent(new DeregisterInstanceTraceEvent(System.currentTimeMillis(), "", false,
                 DeregisterInstanceReason.REQUEST, namespaceId, NamingUtils.getGroupName(serviceName),

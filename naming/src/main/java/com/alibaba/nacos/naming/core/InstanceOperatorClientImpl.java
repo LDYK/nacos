@@ -101,12 +101,13 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
     @Override
     public void registerInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
         NamingUtils.checkInstanceIsLegal(instance);
-        // ephemeral为true为临时实例，false是持久化实例
+        // ephemeral为true为临时实例，false是持久化实例，默认为true
         boolean ephemeral = instance.isEphemeral();
+        //生成一个客户端id：用ip和端口表示一个客户端 格式ip#port#true
         String clientId = IpPortBasedClient.getClientId(instance.toInetAddr(), ephemeral);
         // 创建ClientAttributes实例，并set到clientManager中
         createIpPortClientIfAbsent(clientId);
-        // 获取Service实例
+        // 创建Service实例
         Service service = getService(namespaceId, serviceName, ephemeral);
         // 调用ClientOperationServiceProxy的registerInstance()方法，根据isEphemeral选择调用ClientOperationService的具体实现类
         clientOperationService.registerInstance(service, instance, clientId);
@@ -115,12 +116,16 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
     @Override
     public void removeInstance(String namespaceId, String serviceName, Instance instance) {
         boolean ephemeral = instance.isEphemeral();
+        // clientId格式：ip:port#ephemeral
         String clientId = IpPortBasedClient.getClientId(instance.toInetAddr(), ephemeral);
+        //如果客户端管理器没有这个client 直接返回
         if (!clientManager.contains(clientId)) {
             Loggers.SRV_LOG.warn("remove instance from non-exist client: {}", clientId);
             return;
         }
+        //构建服务对象
         Service service = getService(namespaceId, serviceName, ephemeral);
+        //clientOprationService 这里的类型时 ClientOperationServiceProxy 代理类
         clientOperationService.deregisterInstance(service, instance, clientId);
     }
     

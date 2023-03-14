@@ -51,11 +51,14 @@ import java.util.stream.Stream;
 public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements NamingSubscriberService {
     
     private static final int PARALLEL_SIZE = 100;
-    
+
+    // 客户端管理器回顾一下前面讲到的 ClientManagerDelegate 和 EphemeralIpPortClientManager 管理所有的客户端及客户端的管理功能
     private final ClientManager clientManager;
-    
+
+    // ClientServiceIndexesManager管理所有的服务订阅者和发布者信息
     private final ClientServiceIndexesManager indexesManager;
-    
+
+    //这是Nacos推送机制 主要有udp 和 rpc长连接
     private final PushDelayTaskExecuteEngine delayTaskEngine;
     
     public NamingSubscriberServiceV2Impl(ClientManagerDelegate clientManager,
@@ -71,21 +74,28 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
     
     @Override
     public Collection<Subscriber> getSubscribers(String namespaceId, String serviceName) {
+        //从serviceName中获取groupName
         String serviceNameWithoutGroup = NamingUtils.getServiceName(serviceName);
         String groupName = NamingUtils.getGroupName(serviceName);
+        //根据命名空间 组名 不在组名的服务名构建service
         Service service = Service.newService(namespaceId, groupName, serviceNameWithoutGroup);
+        //找到服务的所有订阅者
         return getSubscribers(service);
     }
-    
+
     @Override
     public Collection<Subscriber> getSubscribers(Service service) {
         Collection<Subscriber> result = new HashSet<>();
+        //客户端id格式 ip:port#(是否是临时节点的标志true|false)
+        //indexesManager.getAllClientsSubscribeService 查询服务的所有订阅客户端
         for (String each : indexesManager.getAllClientsSubscribeService(service)) {
             result.add(clientManager.getClient(each).getSubscriber(service));
         }
         return result;
     }
-    
+
+    //模糊匹配所有只要包含 服务名称 和 包含组名的所有的serveice 列表
+    //返回所有满足匹配条件的service 列表的 所有订阅者 列表
     @Override
     public Collection<Subscriber> getFuzzySubscribers(String namespaceId, String serviceName) {
         Collection<Subscriber> result = new HashSet<>();
@@ -97,12 +107,15 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
                 .forEach(service -> result.addAll(getSubscribers(service)));
         return result;
     }
-    
+
+    //根据服务名和组名模糊查找所有匹配条件的service 列表下的订阅者
     @Override
     public Collection<Subscriber> getFuzzySubscribers(Service service) {
         return getFuzzySubscribers(service.getNamespace(), service.getGroupedServiceName());
     }
-    
+
+    //订阅两类事件
+    //1、服务变更 和 服务订阅事件
     @Override
     public List<Class<? extends Event>> subscribeTypes() {
         List<Class<? extends Event>> result = new LinkedList<>();
@@ -113,21 +126,25 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
     
     @Override
     public void onEvent(Event event) {
+        //  ServiceChangedEvent 事件和 ServiceSubscribedEvent 事件唯一的区别是ServiceChangedEvent通知所有的订阅者 ServiceSubscribedEvent只推送给其中一个订阅者
         if (event instanceof ServiceEvent.ServiceChangedEvent) {
-            // If service changed, push to all subscribers.
+            // 服务变更会推送给所有的订阅者
             ServiceEvent.ServiceChangedEvent serviceChangedEvent = (ServiceEvent.ServiceChangedEvent) event;
             Service service = serviceChangedEvent.getService();
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay()));
             MetricsMonitor.incrementServiceChangeCount(service.getNamespace(), service.getGroup(), service.getName());
         } else if (event instanceof ServiceEvent.ServiceSubscribedEvent) {
             // If service is subscribed by one client, only push this client.
+            // 如果服务被一个客户端订阅，则只推送该客户端。
             ServiceEvent.ServiceSubscribedEvent subscribedEvent = (ServiceEvent.ServiceSubscribedEvent) event;
             Service service = subscribedEvent.getService();
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay(),
                     subscribedEvent.getClientId()));
         }
     }
-    
+
+    //如果所有的服务大于100 就用并发流否则使用单流
+    //PARALLEL_SIZE  ：100
     private Stream<Service> getServiceStream() {
         Collection<Service> services = indexesManager.getSubscribedService();
         return services.size() > PARALLEL_SIZE ? services.parallelStream() : services.stream();

@@ -54,6 +54,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void registerInstance(Service service, Instance instance, String clientId) throws NacosException {
+        //先检查该服务是否在服务管理器中注册过，没有就注册
         NamingUtils.checkInstanceIsLegal(instance);
     
         Service singleton = ServiceManager.getInstance().getSingleton(service);
@@ -62,11 +63,13 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
                     String.format("Current service %s is persistent service, can't register ephemeral instance.",
                             singleton.getGroupedServiceName()));
         }
-        // 获取Client对象
+        //获取之前注册过的IpPortBasedClient对象
         Client client = clientManager.getClient(clientId);
         if (!clientIsLegal(client, clientId)) {
             return;
         }
+        //从instance对象创建InstancePublishInfo
+        //注意包括ip port healthy 3个属性 是instance的属性的子集
         InstancePublishInfo instanceInfo = getPublishInfo(instance);
         client.addServiceInstance(singleton, instanceInfo);
         client.setLastUpdatedTime();
@@ -80,6 +83,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void batchRegisterInstance(Service service, List<Instance> instances, String clientId) {
+        // 交给服务管理器管理服务
         Service singleton = ServiceManager.getInstance().getSingleton(service);
         if (!singleton.isEphemeral()) {
             throw new NacosRuntimeException(NacosException.INVALID_PARAM,
@@ -106,10 +110,13 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void deregisterInstance(Service service, Instance instance, String clientId) {
+        //服务管理器中是否存在该服务
+        //在EphemeralClientOperationServiceImpl服务注册逻辑里第一行代码就是交给服务管理器管理服务
         if (!ServiceManager.getInstance().containSingleton(service)) {
             Loggers.SRV_LOG.warn("remove instance from non-exist service: {}", service);
             return;
         }
+        //构建服务对象
         Service singleton = ServiceManager.getInstance().getSingleton(service);
         Client client = clientManager.getClient(clientId);
         if (!clientIsLegal(client, clientId)) {
