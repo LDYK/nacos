@@ -64,7 +64,7 @@ public class ClientBeatCheckTaskV2 extends AbstractExecuteTask implements BeatCh
         return taskId;
     }
 
-    // 健康检查
+    // 心跳检查
     // 执行心跳检查任务是在ClientBeatCheckTaskV2 里面嵌入一个新的InstanceBeatCheckTask任务
     // 真正的心跳检查逻辑是在InstanceBeatCheckTask上的拦截器都执行完毕后
     // 再执行InstanceBeatCheckTask的passIntercept方法完成一次心跳检查

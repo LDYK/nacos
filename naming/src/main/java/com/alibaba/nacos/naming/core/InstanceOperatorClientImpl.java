@@ -358,6 +358,7 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
             } else {
                 clientAttributes = new ClientAttributes();
             }
+            // 调用ClientManagerDelegate的clientConnected()方法
             clientManager.clientConnected(clientId, clientAttributes);
         }
     }

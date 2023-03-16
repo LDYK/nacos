@@ -45,6 +45,7 @@ public class HealthCheckReactor {
     public static void scheduleCheck(HealthCheckTaskV2 task) {
         task.setStartTime(System.currentTimeMillis());
         Runnable wrapperTask = new HealthCheckTaskInterceptWrapper(task);
+        // NAMING_HEALTH_EXECUTOR线程池，如配置核心线程数则使用，否则使用CPU核数一半
         GlobalExecutor.scheduleNamingHealth(wrapperTask, task.getCheckRtNormalized(), TimeUnit.MILLISECONDS);
     }
     
@@ -57,6 +58,9 @@ public class HealthCheckReactor {
         Runnable wrapperTask =
                 task instanceof NacosHealthCheckTask ? new HealthCheckTaskInterceptWrapper((NacosHealthCheckTask) task)
                         : task;
+        // NAMING_HEALTH_EXECUTOR线程池，如配置核心线程数则使用，否则使用CPU核数一半
+        // initialDelay：第一次延迟执行时间
+        // delay：间隔5秒执行一次
         futureMap.computeIfAbsent(task.taskKey(),
                 k -> GlobalExecutor.scheduleNamingHealth(wrapperTask, 5000, 5000, TimeUnit.MILLISECONDS));
     }

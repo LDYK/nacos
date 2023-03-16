@@ -153,10 +153,12 @@ public class IpPortBasedClient extends AbstractClient {
         if (ephemeral) {
             // 创建临时节点的心跳检查任务并加入定时任务执行
             beatCheckTask = new ClientBeatCheckTaskV2(this);
+            // 临时节点心跳检查：第一次执行5秒后，后面间隔5秒执行一次
             HealthCheckReactor.scheduleCheck(beatCheckTask);
         } else {
             // 创建持久化节点的心跳检查任务并加入定时任务执行
             healthCheckTaskV2 = new HealthCheckTaskV2(this);
+            // 健康检查：第一次执行5秒后，后面间隔5秒执行一次
             HealthCheckReactor.scheduleCheck(healthCheckTaskV2);
         }
     }
