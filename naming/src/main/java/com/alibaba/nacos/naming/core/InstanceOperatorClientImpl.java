@@ -67,19 +67,27 @@ import java.util.Optional;
  */
 @org.springframework.stereotype.Service
 public class InstanceOperatorClientImpl implements InstanceOperator {
-    
+
+    //客户端管理器
     private final ClientManager clientManager;
-    
+
+    //客户端操作服务 有2种具体实现
+    // EphemeralClientOperationServiceImpl
+    // PersistenceClientOperationServiceImpl
     private final ClientOperationService clientOperationService;
-    
+
+    //服务存储功能服务
     private final ServiceStorage serviceStorage;
-    
+
+    //元数据管理器
     private final NamingMetadataOperateService metadataOperateService;
     
     private final NamingMetadataManager metadataManager;
-    
+
+    //可以理解成全局的配置开关
     private final SwitchDomain switchDomain;
-    
+
+    //udp推送服务
     private final UdpPushService pushService;
     
     public InstanceOperatorClientImpl(ClientManagerDelegate clientManager,

@@ -41,6 +41,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
+ *
+ * 根据service存取对应的ServiceInfo以及service下的集群列表
+ *
  * Service storage.
  *
  * @author xiweng.yy
@@ -69,15 +72,21 @@ public class ServiceStorage {
         this.serviceDataIndexes = new ConcurrentHashMap<>();
         this.serviceClusterIndex = new ConcurrentHashMap<>();
     }
-    
+
+    //服务的集群列表
     public Set<String> getClusters(Service service) {
         return serviceClusterIndex.getOrDefault(service, new HashSet<>());
     }
-    
+
+
+    // 从serviceDataIndexes获取service数据
+    // 如果没有通过getPush构建一个ServiceInfo
+    // ServiceInfo：返回给客户端的服务详情信息
     public ServiceInfo getData(Service service) {
         return serviceDataIndexes.containsKey(service) ? serviceDataIndexes.get(service) : getPushData(service);
     }
-    
+
+    //如果服务管理器中没有这个服务就通过ServiceManager创建并返回一个空的serviceInfo
     public ServiceInfo getPushData(Service service) {
         ServiceInfo result = emptyServiceInfo(service);
         if (!ServiceManager.getInstance().containSingleton(service)) {
@@ -88,12 +97,14 @@ public class ServiceStorage {
         serviceDataIndexes.put(singleton, result);
         return result;
     }
-    
+
+    //分别从2个map中移除service记录
     public void removeData(Service service) {
         serviceDataIndexes.remove(service);
         serviceClusterIndex.remove(service);
     }
-    
+
+    //根据service中的属性创建新的ServiceInfo
     private ServiceInfo emptyServiceInfo(Service service) {
         ServiceInfo result = new ServiceInfo();
         result.setName(service.getName());
@@ -106,7 +117,9 @@ public class ServiceStorage {
     private List<Instance> getAllInstancesFromIndex(Service service) {
         Set<Instance> result = new HashSet<>();
         Set<String> clusters = new HashSet<>();
+        //轮询发布该服务的所有clientId
         for (String each : serviceIndexesManager.getAllClientsRegisteredService(service)) {
+            //根据clientId查询对应发布的实例信息
             Optional<InstancePublishInfo> instancePublishInfo = getInstanceInfo(each, service);
             if (instancePublishInfo.isPresent()) {
                 InstancePublishInfo publishInfo = instancePublishInfo.get();
@@ -143,7 +156,9 @@ public class ServiceStorage {
         }
         return resultInstanceList;
     }
-    
+
+    //根据clientId从客户端管理器中查询Client
+    //client查询服务的所有发布信息类型InstancePublishInfo(跟Instance属性差异不大)
     private Optional<InstancePublishInfo> getInstanceInfo(String clientId, Service service) {
         Client client = clientManager.getClient(clientId);
         if (null == client) {
@@ -151,9 +166,12 @@ public class ServiceStorage {
         }
         return Optional.ofNullable(client.getInstancePublishInfo(service));
     }
-    
+
+    //解析InstancePublishInfo 成 Instance
     private Instance parseInstance(Service service, InstancePublishInfo instanceInfo) {
+        //属性赋值
         Instance result = InstanceUtil.parseToApiInstance(service, instanceInfo);
+        //查询实例的元数据并更新Instance里面的元数据
         Optional<InstanceMetadata> metadata = metadataManager
                 .getInstanceMetadata(service, instanceInfo.getMetadataId());
         metadata.ifPresent(instanceMetadata -> InstanceUtil.updateInstanceMetadata(result, instanceMetadata));

@@ -46,23 +46,29 @@ public class ServiceInfo {
     public static final String SPLITER = "@@";
     
     private static final String DEFAULT_CHARSET = "UTF-8";
-    
+
+    //服务名称
     private String name;
     
     private String groupName;
-    
+
+    //集群名称
     private String clusters;
     
     private long cacheMillis = 1000L;
-    
+
+    //服务下的实例列表
     private List<Instance> hosts = new ArrayList<>();
-    
+
+    //最近一次访问的时间
     private long lastRefTime = 0L;
     
     private String checksum = "";
-    
+
+    //allIPs 目前么有找到使用的地方
     private volatile boolean allIPs = false;
-    
+
+    //是否触达到了服务实例的保护阈值 0-1 之间的小数
     private volatile boolean reachProtectionThreshold = false;
     
     public ServiceInfo() {
@@ -178,6 +184,7 @@ public class ServiceInfo {
      *
      * @return true if validate, otherwise false
      */
+    //校验是否存在健康的服务实例
     public boolean validate() {
         if (isAllIPs()) {
             return true;

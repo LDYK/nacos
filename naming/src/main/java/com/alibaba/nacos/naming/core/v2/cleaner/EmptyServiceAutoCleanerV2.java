@@ -50,6 +50,7 @@ public class EmptyServiceAutoCleanerV2 extends AbstractNamingCleaner {
             ServiceStorage serviceStorage) {
         this.clientServiceIndexesManager = clientServiceIndexesManager;
         this.serviceStorage = serviceStorage;
+        //60秒执行一次服务的清理工作
         GlobalExecutor.scheduleExpiredClientCleaner(this, TimeUnit.SECONDS.toMillis(30),
                 GlobalConfig.getEmptyServiceCleanInterval(), TimeUnit.MILLISECONDS);
         
@@ -59,25 +60,31 @@ public class EmptyServiceAutoCleanerV2 extends AbstractNamingCleaner {
     public String getType() {
         return EMPTY_SERVICE;
     }
-    
+
+    //服务清理流程
     @Override
     public void doClean() {
         ServiceManager serviceManager = ServiceManager.getInstance();
         // Parallel flow opening threshold
         int parallelSize = 100;
-        
+        //轮询所有的命名空间
         for (String each : serviceManager.getAllNamespaces()) {
+            //每个命名空间下的服务列表
             Set<Service> services = serviceManager.getSingletons(each);
+            //大于100个用并行流处理
             Stream<Service> stream = services.size() > parallelSize ? services.parallelStream() : services.stream();
+            //对每一个服务执行清理操作
             stream.forEach(this::cleanEmptyService);
         }
     }
     
     private void cleanEmptyService(Service service) {
         Collection<String> registeredService = clientServiceIndexesManager.getAllClientsRegisteredService(service);
+        //满足条件：没有找到服务实例且服务更新已过期
         if (registeredService.isEmpty() && isTimeExpired(service)) {
             Loggers.SRV_LOG.warn("namespace : {}, [{}] services are automatically cleaned", service.getNamespace(),
                     service.getGroupedServiceName());
+            //分别移除clientServiceIndexesManager ServiceManager ServiceStorage
             clientServiceIndexesManager.removePublisherIndexesByEmptyService(service);
             ServiceManager.getInstance().removeSingleton(service);
             serviceStorage.removeData(service);
