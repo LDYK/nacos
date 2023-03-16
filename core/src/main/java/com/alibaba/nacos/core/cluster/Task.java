@@ -39,6 +39,7 @@ public abstract class Task implements Runnable {
         } catch (Throwable t) {
             Loggers.CORE.error("this task execute has error : {}", ExceptionUtil.getStackTrace(t));
         } finally {
+            //任务执行结束2秒后继续执行心跳上报任务
             if (!shutdown) {
                 after();
             }

@@ -60,23 +60,32 @@ import static com.alibaba.nacos.common.constant.RequestUrlConstants.HTTP_PREFIX;
 public class ServerListManager implements ServerListFactory, Closeable {
     
     private final NacosRestTemplate nacosRestTemplate = NamingHttpClientManager.getInstance().getNacosRestTemplate();
-    
+
+    //隔多久拉取一次远程服务列表
     private final long refreshServerListInternal = TimeUnit.SECONDS.toMillis(30);
-    
+
+    // 环境信息：dev、test、product等
+    // namespace -> service -> group -> cluster -> instance
     private final String namespace;
     
     private final AtomicInteger currentIndex = new AtomicInteger();
-    
+
+    //配置文件中配置的serverList
     private final List<String> serverList = new ArrayList<>();
-    
+
+    //从远程服务为拉取的nacos server 列表
     private volatile List<String> serversFromEndpoint = new ArrayList<>();
-    
+
+    // 定时拉取的线程池
     private ScheduledExecutorService refreshServerListExecutor;
-    
+
+    //配置中维护的远程拉取serverList的地址
     private String endpoint;
-    
+
+    // 只配置了一个nacos Server的地址
     private String nacosDomain;
-    
+
+    //最近一次拉取serverList时间
     private long lastServerListRefreshTime = 0L;
     
     public ServerListManager(Properties properties) {
@@ -93,29 +102,44 @@ public class ServerListManager implements ServerListFactory, Closeable {
             throw new NacosLoadException("serverList is empty,please check configuration");
         }
     }
-    
+
+    /**
+     * 1、属性配置 2、提供查询的端点地址
+     * 一般小集群或者服务的ip不怎么改变的情况可以直接本地化配置，
+     * 如果集群数量比较大或者ip会变化就只能用第二种方式
+     * 从远程服务拉取服务列表是通过一个定时任务没隔30s更新一次
+     **/
     private void initServerAddr(NacosClientProperties properties) {
         this.endpoint = InitUtils.initEndpoint(properties);
+        // 如果endpoint已配置
+        // endpoint: 拉取远程服务列表的ip:port
         if (StringUtils.isNotEmpty(endpoint)) {
             this.serversFromEndpoint = getServerListFromEndpoint();
+            // 创建定时任务线程池，核心线程为 1
             refreshServerListExecutor = new ScheduledThreadPoolExecutor(1,
                     new NameThreadFactory("com.alibaba.nacos.client.naming.server.list.refresher"));
+            // 定时任务每隔30s执行一次refreshServerListIfNeed方法
             refreshServerListExecutor
                     .scheduleWithFixedDelay(this::refreshServerListIfNeed, 0, refreshServerListInternal,
                             TimeUnit.MILLISECONDS);
         } else {
+            // 从配置中获取列表
             String serverListFromProps = properties.getProperty(PropertyKeyConst.SERVER_ADDR);
             if (StringUtils.isNotEmpty(serverListFromProps)) {
+                // serverList: 从本地配置"serverAddr"中解析，并赋值给serverList
                 this.serverList.addAll(Arrays.asList(serverListFromProps.split(",")));
+                // 如果只有一个服务端则赋值给nacosDomain
                 if (this.serverList.size() == 1) {
                     this.nacosDomain = serverListFromProps;
                 }
             }
         }
     }
-    
+
+    // 远程获取配置列表
     private List<String> getServerListFromEndpoint() {
         try {
+            // endpoint配置中维护
             String urlString = HTTP_PREFIX + endpoint + "/nacos/serverlist";
             Header header = NamingHttpUtil.builderHeader();
             Query query = StringUtils.isNotBlank(namespace)
@@ -142,21 +166,27 @@ public class ServerListManager implements ServerListFactory, Closeable {
     
     private void refreshServerListIfNeed() {
         try {
+            //如果本地已经设置了serverList 不从远程拉取serverList
             if (!CollectionUtils.isEmpty(serverList)) {
                 NAMING_LOGGER.debug("server list provided by user: " + serverList);
                 return;
             }
+            //间隔时间未到
             if (System.currentTimeMillis() - lastServerListRefreshTime < refreshServerListInternal) {
                 return;
             }
+            // 从endpoint属性提供的地址拉取serverList
             List<String> list = getServerListFromEndpoint();
             if (CollectionUtils.isEmpty(list)) {
                 throw new Exception("Can not acquire Nacos list");
             }
+            // 如果之前拉取的服务列表跟本次拉取不同，则更新
             if (null == serversFromEndpoint || !CollectionUtils.isEqualCollection(list, serversFromEndpoint)) {
                 NAMING_LOGGER.info("[SERVER-LIST] server list is updated: " + list);
                 serversFromEndpoint = list;
+                // 更新服务列表获取时间
                 lastServerListRefreshTime = System.currentTimeMillis();
+                // 发布服务列表变更事件
                 NotifyCenter.publishEvent(new ServerListChangedEvent());
             }
         } catch (Throwable e) {

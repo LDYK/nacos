@@ -72,15 +72,20 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
  * @author xiweng.yy
  */
 public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
-    
+
+    // 环境信息：dev、test、product等
+    // namespace -> service -> group -> cluster -> instance
     private final String namespaceId;
     
     private final String uuid;
-    
+
+    // 请求超时时间
     private final Long requestTimeout;
-    
+
+    // Grpc请求客户端
     private final RpcClient rpcClient;
-    
+
+    // 补偿服务
     private final NamingGrpcRedoService redoService;
     
     public NamingGrpcClientProxy(String namespaceId, SecurityProxy securityProxy, ServerListFactory serverListFactory,
@@ -96,6 +101,7 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
         // GRPC的补偿定时任务
         // 注册失败时的自动补偿机制
         this.redoService = new NamingGrpcRedoService(this);
+        // serverListFactory传的值是serverListManager
         start(serverListFactory, serviceInfoHolder);
     }
     
@@ -104,6 +110,7 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
         rpcClient.registerConnectionListener(redoService);
         rpcClient.registerServerRequestHandler(new NamingPushRequestHandler(serviceInfoHolder));
         rpcClient.start();
+        // 注册订阅
         NotifyCenter.registerSubscriber(this);
     }
     
@@ -314,6 +321,7 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
         SubscribeServiceRequest request = new SubscribeServiceRequest(namespaceId, groupName, serviceName, clusters,
                 true);
         SubscribeServiceResponse response = requestToServer(request, SubscribeServiceResponse.class);
+        // 服务订阅
         redoService.subscriberRegistered(serviceName, groupName, clusters);
         return response.getServiceInfo();
     }

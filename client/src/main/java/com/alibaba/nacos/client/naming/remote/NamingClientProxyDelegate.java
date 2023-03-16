@@ -50,7 +50,8 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
  * @author xiweng.yy
  */
 public class NamingClientProxyDelegate implements NamingClientProxy {
-    
+
+    // 服务列表管理
     private final ServerListManager serverListManager;
     
     private final ServiceInfoUpdateService serviceInfoUpdateService;

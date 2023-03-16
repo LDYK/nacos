@@ -66,11 +66,15 @@ import static com.alibaba.nacos.common.constant.RequestUrlConstants.HTTP_PREFIX;
  * Naming proxy.
  *
  * @author nkorange
+ *
+ * 继承AbstractNamingClientProxy，实现NamingClientProxy接口，通过NamingClientProxyDelegate代理NamingHttpClientProxy和NamingGrpcClientProxy
+ *
  */
 public class NamingHttpClientProxy extends AbstractNamingClientProxy {
     
     private final NacosRestTemplate nacosRestTemplate = NamingHttpClientManager.getInstance().getNacosRestTemplate();
-    
+
+    //默认的nacos Server 服务端口
     private static final int DEFAULT_SERVER_PORT = 8848;
     
     private static final String IP_PARAM = "ip";
@@ -100,9 +104,12 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
     private static final String HEALTHY_ONLY_PARAM = "healthyOnly";
     
     private static final String REGISTER_ENABLE_PARAM = "enable";
-    
+
+    // 环境信息：dev、test、product等
+    // namespace -> service -> group -> cluster -> instance
     private final String namespaceId;
-    
+
+    //serverList管理类
     private final ServerListManager serverListManager;
     
     private final int maxRetry;
@@ -128,7 +135,15 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
     public Class<? extends Event> subscribeType() {
         return ServerListChangedEvent.class;
     }
-    
+
+    /**
+     * Instance 对象在初始化时候 属性默认值情况如下：
+     * weight = 1.0;
+     * healthy = true;
+     * enabled = true;
+     * ephemeral = true;
+     * cluster=DEFAULT
+     **/
     @Override
     public void registerService(String serviceName, String groupName, Instance instance) throws NacosException {
         NAMING_LOGGER.info("[REGISTER-SERVICE] {} registering service {} with instance: {}", namespaceId, serviceName,
@@ -139,6 +154,7 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
                     "Do not support register ephemeral instances by HTTP, please use gRPC replaced.");
         }
         final Map<String, String> params = new HashMap<>(32);
+        // 注册服务的参数包括: 命名空间 服务名 分组名 集群名 ip port 权重 是否可用 是否健康 是否临时节点 扩展数据
         params.put(CommonParams.NAMESPACE_ID, namespaceId);
         params.put(CommonParams.SERVICE_NAME, groupedServiceName);
         params.put(CommonParams.GROUP_NAME, groupName);
@@ -148,6 +164,7 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         params.put(WEIGHT_PARAM, String.valueOf(instance.getWeight()));
         params.put(REGISTER_ENABLE_PARAM, String.valueOf(instance.isEnabled()));
         params.put(HEALTHY_PARAM, String.valueOf(instance.isHealthy()));
+        // ephemeral：代表是否是临时节点[可以随时上下线的节点] 一般我们的服务注册的都是临时节点 相对的还有一种持久化的节点 这种一般我们得不多，后面讲到服务端代码时再作说明
         params.put(EPHEMERAL_PARAM, String.valueOf(instance.isEphemeral()));
         params.put(META_PARAM, JacksonUtils.toJson(instance.getMetadata()));
         // 发送请求，注册服务。请求路径为：/v1/ns/instance，对应InstanceController中的register()
@@ -205,7 +222,8 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         
         reqApi(UtilAndComs.nacosUrlInstance, params, HttpMethod.PUT);
     }
-    
+
+    // 返回的【ServiceInfo】对象包装了服务名、组名、集群及集群下的实例列表的信息, 如果没有查询到就创建一个空的【ServiceInfo】对象
     @Override
     public ServiceInfo queryInstancesOfService(String serviceName, String groupName, String clusters, int udpPort,
             boolean healthyOnly) throws NacosException {
@@ -213,6 +231,7 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         params.put(CommonParams.NAMESPACE_ID, namespaceId);
         params.put(CommonParams.SERVICE_NAME, NamingUtils.getGroupedName(serviceName, groupName));
         params.put(CLUSTERS_PARAM, clusters);
+        //这2个参数，作用服务端后面主动推送udp消息到客户端
         params.put(UDP_PORT_PARAM, String.valueOf(udpPort));
         params.put(CLIENT_IP_PARAM, NetUtils.localIP());
         params.put(HEALTHY_ONLY_PARAM, String.valueOf(healthyOnly));
@@ -266,7 +285,8 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         String result = reqApi(UtilAndComs.nacosUrlService, params, HttpMethod.DELETE);
         return "ok".equals(result);
     }
-    
+
+    // 根据服务更新protectThreshold、metadata、selector信息
     @Override
     public void updateService(Service service, AbstractSelector selector) throws NacosException {
         NAMING_LOGGER.info("[UPDATE-SERVICE] {} updating service : {}", namespaceId, service);
@@ -275,13 +295,16 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         params.put(CommonParams.NAMESPACE_ID, namespaceId);
         params.put(CommonParams.SERVICE_NAME, service.getName());
         params.put(CommonParams.GROUP_NAME, service.getGroupName());
+        // protectThreshold: 0-1 服务保护阈值
         params.put(PROTECT_THRESHOLD_PARAM, String.valueOf(service.getProtectThreshold()));
         params.put(META_PARAM, JacksonUtils.toJson(service.getMetadata()));
+        // selector：服务实例过滤器
         params.put(SELECTOR_PARAM, JacksonUtils.toJson(selector));
         
         reqApi(UtilAndComs.nacosUrlService, params, HttpMethod.PUT);
     }
-    
+
+    // 检查Nacos Server的健康状态
     @Override
     public boolean serverHealthy() {
         
@@ -294,7 +317,8 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
             return false;
         }
     }
-    
+
+    // 是一个分页查询 返回服务总数量和当页的数据列表
     @Override
     public ListView<String> getServiceList(int pageNo, int pageSize, String groupName, AbstractSelector selector)
             throws NacosException {
@@ -333,7 +357,8 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
     public ServiceInfo subscribe(String serviceName, String groupName, String clusters) throws NacosException {
         throw new UnsupportedOperationException("Do not support subscribe service by UDP, please use gRPC replaced.");
     }
-    
+
+    // 方法体为空说明不提供取消订阅的功能
     @Override
     public void unsubscribe(String serviceName, String groupName, String clusters) throws NacosException {
     }
@@ -342,7 +367,7 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
     public boolean isSubscribed(String serviceName, String groupName, String clusters) throws NacosException {
         return true;
     }
-    
+    // 底层API调用方法
     public String reqApi(String api, Map<String, String> params, String method) throws NacosException {
         return reqApi(api, params, Collections.EMPTY_MAP, method);
     }
@@ -367,15 +392,18 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
             String method) throws NacosException {
         
         params.put(CommonParams.NAMESPACE_ID, getNamespaceId());
-        
+        // servers默认传serverListManager.getServerList()：获取服务列表，一个是从本地配置"serverAddr"中解析serverList，一个是远程调用endpoint获取serversFromEndpoint
+        // serverListManager.isDomain()：是否只有一个服务端
         if (CollectionUtils.isEmpty(servers) && !serverListManager.isDomain()) {
             throw new NacosException(NacosException.INVALID_PARAM, "no server available");
         }
         
         NacosException exception = new NacosException();
-        
+        // 如果只有一个服务端进入if
         if (serverListManager.isDomain()) {
+            // 获取服务列表，在serverListManager初始化的时候已设置
             String nacosDomain = serverListManager.getNacosDomain();
+            // 配置的最大重试次数，默认3次
             for (int i = 0; i < maxRetry; i++) {
                 try {
                     return callServer(api, params, body, nacosDomain, method);
@@ -389,7 +417,7 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         } else {
             Random random = new Random();
             int index = random.nextInt(servers.size());
-            
+            // 向每个服务端发送请求
             for (int i = 0; i < servers.size(); i++) {
                 String server = servers.get(index);
                 try {
@@ -432,7 +460,10 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         String serviceName = params.get(CommonParams.SERVICE_NAME);
         params.putAll(getSecurityHeaders(namespace, group, serviceName));
         Header header = NamingHttpUtil.builderHeader();
-        
+
+        //如果以http://或者https://开头 直接拼接api路径
+        //如果么有端口信息则拼上默认端口8848或属性【nacos.naming.exposed.port】指定得端口信息
+        //否则拼接上http://或者https://
         String url;
         if (curServer.startsWith(HTTPS_PREFIX) || curServer.startsWith(HTTP_PREFIX)) {
             url = curServer + api;
@@ -443,6 +474,7 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
             url = NamingHttpClientManager.getInstance().getPrefix() + curServer + api;
         }
         try {
+            //发起请求
             HttpRestResult<String> restResult = nacosRestTemplate
                     .exchangeForm(url, header, Query.newInstance().initParams(params), body, method, String.class);
             end = System.currentTimeMillis();

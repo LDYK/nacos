@@ -78,6 +78,10 @@ import java.util.concurrent.ConcurrentSkipListMap;
  * ServerMemberManager#initAndStartLookup()} Initializes the addressing mode
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
+ *
+ * 初始化的集群列表是一个静态的列表，集群服务器之间的感知通过节点心跳任务主动上报本节点的信息。根据返回结果更新节点的状态信息，作为请求的接收方及时更新本地集群的节点信息。
+ * ServerMemberManager在服务启动的时候会启动定时任务每隔2秒发送本节点的信息给集群内其他机器，发送的数据是当前节点的Member 对象序列化后的内容。通过post 的异步回调方式的给集群列表所有机器循环发送.
+ *
  */
 @Component(value = "serverMemberManager")
 public class ServerMemberManager implements ApplicationListener<WebServerInitializedEvent> {
@@ -147,7 +151,9 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     protected void init() throws NacosException {
         Loggers.CORE.info("Nacos-related cluster resource initialization");
+        // 从配置获取端口号，默认8848
         this.port = EnvUtil.getProperty(SERVER_PORT_PROPERTY, Integer.class, DEFAULT_SERVER_PORT);
+        // address格式：ip:port
         this.localAddress = InetUtils.getSelfIP() + ":" + port;
         this.self = MemberUtil.singleParse(this.localAddress);
         this.self.setExtendVal(MemberMetaDataConstants.VERSION, VersionUtils.version);
@@ -239,9 +245,13 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
      * @param newMember {@link Member}
      * @return update is success
      */
+    // 更新节点信息
+    // 首先如果节点状态时DOWN 那么从健康实例列表中移除该节点。
+    // 否则判断是否有基本信息变更，有变更就发布集群变更事件，同时更新本地的节点信息。
     public boolean update(Member newMember) {
         Loggers.CLUSTER.debug("member information update : {}", newMember);
-        
+
+        //如果节点不存在就返回
         String address = newMember.getAddress();
         if (!serverList.containsKey(address)) {
             Loggers.CLUSTER.warn("address {} want to update Member, but not in member list!", newMember.getAddress());
@@ -249,14 +259,18 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         }
         
         serverList.computeIfPresent(address, (s, member) -> {
+            //节点下线从健康地址列表[memberAddressInfos]删除该地址
             if (NodeState.DOWN.equals(newMember.getState())) {
                 memberAddressInfos.remove(newMember.getAddress());
             }
             boolean isPublishChangeEvent = MemberUtil.isBasicInfoChanged(newMember, member);
+            //LAST_REFRESH_TIME 这个字段目前没有地方使用到
             newMember.setExtendVal(MemberMetaDataConstants.LAST_REFRESH_TIME, System.currentTimeMillis());
+            //更新本地的member对象
             MemberUtil.copy(newMember, member);
             if (isPublishChangeEvent) {
                 // member basic data changes and all listeners need to be notified
+                //信息有变化触发相应的监听器
                 notifyMemberChange(member);
             }
             return member;
@@ -508,7 +522,8 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         
         private final GenericType<RestResult<String>> reference = new GenericType<RestResult<String>>() {
         };
-        
+
+        //从服务器列表中第一个开始请求
         private int cursor = 0;
         
         @Override
@@ -518,19 +533,28 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
             if (members.isEmpty()) {
                 return;
             }
-            
+
+            //逐个请求除自己之外的集群node 列表
             this.cursor = (this.cursor + 1) % members.size();
             Member target = members.get(cursor);
             
             Loggers.CLUSTER.debug("report the metadata to the node : {}", target.getAddress());
-            
+
+            //构建请求url
+            //http://ip:port/nacos/v1/core/cluster/report
             final String url = HttpUtils
                     .buildUrl(false, target.getAddress(), EnvUtil.getContextPath(), Commons.NACOS_CORE_CONTEXT,
                             "/cluster/report");
             
             try {
+
+                // 构建头部参数 输入内容例如：
+                // Accept-Charset=UTF-8, Content-Type=application/json;charset=UTF-8,
+                // Nacos-Server=2.1.0
                 Header header = Header.newInstance().addParam(Constants.NACOS_SERVER_HEADER, VersionUtils.version);
                 AuthHeaderUtil.addIdentityToHeader(header);
+                //底层通过CloseableHttpAsyncClient发送异步请求
+                //请求方法POST 请求数据体 是 Member 对象
                 asyncRestTemplate
                         .post(url, header, Query.EMPTY, getSelf(), reference.getType(), new Callback<String>() {
                             @Override
@@ -561,7 +585,8 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
                         ExceptionUtil.getAllExceptionMsg(ex));
             }
         }
-        
+
+        //2秒后继续执行心跳上报任务
         @Override
         protected void after() {
             GlobalExecutor.scheduleByCommon(this, 2_000L);
@@ -569,6 +594,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         
         private void handleReportResult(String reportResult, Member target) {
             if (isBooleanResult(reportResult)) {
+                //如果之前的状态不是UP, 就改成UP 并发布集群变更事件
                 MemberUtil.onSuccess(ServerMemberManager.this, target);
                 return;
             }

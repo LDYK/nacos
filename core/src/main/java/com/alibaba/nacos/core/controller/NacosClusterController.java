@@ -100,15 +100,21 @@ public class NacosClusterController {
      *
      * @param node {@link Member}
      * @return {@link RestResult}
+     *
+     * com.alibaba.nacos.core.cluster.ServerMemberManager.MemberInfoReportTask#executeBody() 发送请求：http://ip:port/nacos/v1/core/cluster/report
+     *
      */
     @PostMapping(value = {"/report"})
     public RestResult<String> report(@RequestBody Member node) {
+        //注意检测 ip port 不为空及 port 不等于 -1
         if (!node.check()) {
             return RestResultUtils.failedWithMsg(400, "Node information is illegal");
         }
         LoggerUtils.printIfDebugEnabled(Loggers.CLUSTER, "node state report, receive info : {}", node);
+        //说明节点是获得 状态设置为UP 充值失败次数为0
         node.setState(NodeState.UP);
         node.setFailAccessCnt(0);
+        //把远程的节点信息更新本地的节点包括元数据等
         memberManager.update(node);
         return RestResultUtils.success(JacksonUtils.toJson(memberManager.getSelf()));
     }

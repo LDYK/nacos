@@ -160,6 +160,7 @@ public class NotifyCenter {
      * @param consumer subscriber
      */
     public static void registerSubscriber(final Subscriber consumer) {
+        // 注册订阅
         registerSubscriber(consumer, DEFAULT_PUBLISHER_FACTORY);
     }
     

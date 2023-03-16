@@ -134,6 +134,11 @@ public class MemberUtil {
      *
      * @param member {@link Member}
      */
+    //心跳对方返回成功 恢复失败次数为0 如果之前状态不是UP 修改为UP 并发布变更事件
+    //注意元数据的变更及能力的变更不是这里触发的
+    //心跳只返回成功或者失败 不会返回target的信息
+    //心跳把自己的信息推送给target
+    //最后如果状态有变更发布变更事件
     public static void onSuccess(final ServerMemberManager manager, final Member member) {
         final NodeState old = member.getState();
         manager.getMemberAddressInfos().add(member.getAddress());
@@ -179,16 +184,24 @@ public class MemberUtil {
      * @param member {@link Member}
      * @param ex     {@link Throwable}
      */
+
+    //如果失败次数超过3次 设置状态为DOWN 否则是SUSPICIOUS
+    //失败次数校验值可以通过配置属性[nacos.core.member.fail-access-cnt]设置
+    //如果请求的返回移除是connect refused 的关键字说明对方已经挂了直接设置为DOWN
+    //最后如果状态有变更发布变更事件
     public static void onFail(final ServerMemberManager manager, final Member member, Throwable ex) {
+        //从健康列表中移除该地址
         manager.getMemberAddressInfos().remove(member.getAddress());
         final NodeState old = member.getState();
         member.setState(NodeState.SUSPICIOUS);
         member.setFailAccessCnt(member.getFailAccessCnt() + 1);
+        // 失败次数校验值可以通过配置属性[nacos.core.member.fail-access-cnt]设置，默认为3
         int maxFailAccessCnt = EnvUtil
                 .getProperty(MEMBER_FAIL_ACCESS_CNT_PROPERTY, Integer.class, DEFAULT_MEMBER_FAIL_ACCESS_CNT);
         
         // If the number of consecutive failures to access the target node reaches
         // a maximum, or the link request is rejected, the state is directly down
+        // 失败次数大于阈值 或 exception的message包含"Connection refused"，说明对方已经挂了直接设置为DOWN
         if (member.getFailAccessCnt() > maxFailAccessCnt || StringUtils
                 .containsIgnoreCase(ex.getMessage(), TARGET_MEMBER_CONNECT_REFUSE_ERRMSG)) {
             member.setState(NodeState.DOWN);
@@ -259,6 +272,7 @@ public class MemberUtil {
      * @param expected expected member
      * @return true if all content is same, otherwise false
      */
+    //基本信息变更
     public static boolean isBasicInfoChanged(Member actual, Member expected) {
         if (null == expected) {
             return null != actual;
@@ -282,7 +296,8 @@ public class MemberUtil {
         
         return isBasicInfoChangedInExtendInfo(expected, actual);
     }
-    
+
+    //扩展字段变更
     private static boolean isBasicInfoChangedInExtendInfo(Member expected, Member actual) {
         for (String each : MemberMetaDataConstants.BASIC_META_KEYS) {
             if (expected.getExtendInfo().containsKey(each) != actual.getExtendInfo().containsKey(each)) {
