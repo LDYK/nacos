@@ -42,9 +42,11 @@ import static com.alibaba.nacos.naming.constants.ClientConstants.REVISION;
  * @author xiweng.yy
  */
 public abstract class AbstractClient implements Client {
-    
+
+    // 存储客户端服务及对应的实例注册信息
     protected final ConcurrentHashMap<Service, InstancePublishInfo> publishers = new ConcurrentHashMap<>(16, 0.75f, 1);
-    
+
+    // 存储客户端服务及对应的订阅信息
     protected final ConcurrentHashMap<Service, Subscriber> subscribers = new ConcurrentHashMap<>(16, 0.75f, 1);
     
     protected volatile long lastUpdatedTime;
@@ -67,10 +69,11 @@ public abstract class AbstractClient implements Client {
     public long getLastUpdatedTime() {
         return lastUpdatedTime;
     }
-    
+
+    // 将服务添加到集合publishers，首次添加时，在指标数据中进行实例数+1操作
     @Override
     public boolean addServiceInstance(Service service, InstancePublishInfo instancePublishInfo) {
-        //  客户端务发布服务实例布信息
+        //  客户端务发布服务实例信息
         if (null == publishers.put(service, instancePublishInfo)) {
             if (instancePublishInfo instanceof BatchInstancePublishInfo) {
                 MetricsMonitor.incrementIpCountWithBatchRegister(instancePublishInfo);
@@ -83,7 +86,8 @@ public abstract class AbstractClient implements Client {
         Loggers.SRV_LOG.info("Client change for service {}, {}", service, getClientId());
         return true;
     }
-    
+
+    // 将服务从集合publishers删除，并在指标数据中进行实例数-1操作
     @Override
     public InstancePublishInfo removeServiceInstance(Service service) {
         InstancePublishInfo result = publishers.remove(service);
@@ -137,7 +141,9 @@ public abstract class AbstractClient implements Client {
     public Collection<Service> getAllSubscribeService() {
         return subscribers.keySet();
     }
-    
+
+    // 同步数据的生成只要是为了Nacos节点之间数据一致性目的
+    // 生成的数据主要包含了所有客户端服务的注册信息及服务所拥有的namespace、group、instance等
     @Override
     public ClientSyncData generateSyncData() {
         List<String> namespaces = new LinkedList<>();

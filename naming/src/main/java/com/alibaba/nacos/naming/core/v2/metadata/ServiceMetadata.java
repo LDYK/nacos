@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author xiweng.yy
  */
+// Nacos数据（如配置和服务）描述信息，如服务版本、权重、容灾策略、负载均衡策略、鉴权配置、各种自定义标签 (label)，从作用范围来看，分为服务级别的元信息、集群的元信息及实例的元信息。
 public class ServiceMetadata implements Serializable {
     
     private static final long serialVersionUID = -6605609934135069566L;
@@ -41,6 +42,10 @@ public class ServiceMetadata implements Serializable {
     /**
      * protect threshold.
      */
+    // 保护阈值
+    // 为了防止因过多实例 (Instance) 不健康导致流量全部流向健康实例 (Instance) ，继而造成流量压力把健康实例 (Instance) 压垮并形成雪崩效应，
+    // 应将健康保护阈值定义为一个 0 到 1 之间的浮点数。当域名健康实例数 (Instance) 占总服务实例数 (Instance) 的比例小于该值时，无论实例 (Instance) 是否健康，
+    // 都会将这个实例 (Instance) 返回给客户端。这样做虽然损失了一部分流量，但是保证了集群中剩余健康实例 (Instance) 能正常工作。
     private float protectThreshold = 0.0F;
     
     /**

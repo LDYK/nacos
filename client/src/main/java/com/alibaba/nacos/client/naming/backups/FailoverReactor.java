@@ -50,7 +50,8 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
  * @author nkorange
  */
 public class FailoverReactor implements Closeable {
-    
+
+    // 服务备份的文件目录，每个服务一个备份文件
     private static final String FAILOVER_DIR = "/failover";
     
     private static final String IS_FAILOVER_MODE = "1";
@@ -58,9 +59,11 @@ public class FailoverReactor implements Closeable {
     private static final String NO_FAILOVER_MODE = "0";
     
     private static final String FAILOVER_MODE_PARAM = "failover-mode";
-    
+
+    // 存储服务的map
     private Map<String, ServiceInfo> serviceMap = new ConcurrentHashMap<>();
-    
+
+    // 存储 failover-mode 变量 值为false 或者 true 。代表是否启用failover
     private final Map<String, String> switchParams = new ConcurrentHashMap<>();
     
     private static final long DAY_PERIOD_MINUTES = 24 * 60;
@@ -68,11 +71,13 @@ public class FailoverReactor implements Closeable {
     private final String failoverDir;
     
     private final ServiceInfoHolder serviceInfoHolder;
-    
+
+    // 执行定时备份和定时读取服务信息任务的线程池
     private final ScheduledExecutorService executorService;
     
     public FailoverReactor(ServiceInfoHolder serviceInfoHolder, String cacheDir) {
         this.serviceInfoHolder = serviceInfoHolder;
+        // 设置故障落盘文件标识 this.failoverDir = cacheDir + “/failover";
         this.failoverDir = cacheDir + FAILOVER_DIR;
         // init executorService
         this.executorService = new ScheduledThreadPoolExecutor(1, r -> {
@@ -88,16 +93,18 @@ public class FailoverReactor implements Closeable {
      * Init.
      */
     public void init() {
-        
+        // 启动SwitchRefresher线程：立即执行，下次执行间隔5秒
+        // failover 开关文件内容并根据内容读取failover 目录下的服务列表
         executorService.scheduleWithFixedDelay(new SwitchRefresher(), 0L, 5000L, TimeUnit.MILLISECONDS);
-        
+        // 启动服务列表落盘线程DiskFileWriter：延迟30分钟执行，间隔24小时
         executorService.scheduleWithFixedDelay(new DiskFileWriter(), 30, DAY_PERIOD_MINUTES, TimeUnit.MINUTES);
         
         // backup file on startup if failover directory is empty.
+        //服务启动10秒后备份服务列表到failover 目录下文件
         executorService.schedule(() -> {
             try {
                 File cacheDir = new File(failoverDir);
-
+                // 如果目录不存在创建目录
                 if (!cacheDir.exists() && !cacheDir.mkdirs()) {
                     throw new IllegalStateException("failed to create cache dir: " + failoverDir);
                 }
@@ -138,7 +145,10 @@ public class FailoverReactor implements Closeable {
     class SwitchRefresher implements Runnable {
         
         long lastModifiedMillis = 0L;
-        
+
+        // 开关文件如果不存在说明failover-mode 是false
+        // 否则根据 【lastModifiedMillis < modified】来判断文件是否有变更，如果有变更则读取文件内容
+        // 逐行内容判断如果读取到的值是1就设置failove-mode为true 并读取服务的failover file 到 serviceMap钟 ，如果读取到的值是0设置failove-mode为false
         @Override
         public void run() {
             try {
@@ -181,7 +191,8 @@ public class FailoverReactor implements Closeable {
     }
     
     class FailoverFileReader implements Runnable {
-        
+
+        // 循环读取备份文件写入到serviceMap
         @Override
         public void run() {
             Map<String, ServiceInfo> domMap = new HashMap<>(16);
@@ -203,20 +214,23 @@ public class FailoverReactor implements Closeable {
                     if (!file.isFile()) {
                         continue;
                     }
-                    
+
+                    // 如果是failover 开关文件则不处理
                     if (file.getName().equals(UtilAndComs.FAILOVER_SWITCH)) {
                         continue;
                     }
-                    
+
+                    // 文件名为服务名
                     ServiceInfo dom = new ServiceInfo(file.getName());
                     
                     try {
                         String dataString = ConcurrentDiskUtil
                                 .getFileContent(file, Charset.defaultCharset().toString());
                         reader = new BufferedReader(new StringReader(dataString));
-                        
+
                         String json;
                         if ((json = reader.readLine()) != null) {
+                            //反序列化 文件内容为 ServiceInfo
                             try {
                                 dom = JacksonUtils.toObj(json, ServiceInfo.class);
                             } catch (Exception e) {
@@ -235,6 +249,7 @@ public class FailoverReactor implements Closeable {
                             //ignore
                         }
                     }
+                    // 读取到了有效的内容就设置
                     if (!CollectionUtils.isEmpty(dom.getHosts())) {
                         domMap.put(dom.getKey(), dom);
                     }
@@ -242,7 +257,8 @@ public class FailoverReactor implements Closeable {
             } catch (Exception e) {
                 NAMING_LOGGER.error("[NA] failed to read cache file", e);
             }
-            
+
+            //只有新的读取列表不为空时 才赋值给serviceMap
             if (domMap.size() > 0) {
                 serviceMap = domMap;
             }
@@ -250,10 +266,12 @@ public class FailoverReactor implements Closeable {
     }
     
     class DiskFileWriter extends TimerTask {
-        
+
+        // 逐个把当前的服务信息写到failover 文件里
         @Override
         public void run() {
             Map<String, ServiceInfo> map = serviceInfoHolder.getServiceInfoMap();
+            //遍历当前的服务列表 逐个写入到 failoverDir 目录
             for (Map.Entry<String, ServiceInfo> entry : map.entrySet()) {
                 ServiceInfo serviceInfo = entry.getValue();
                 if (StringUtils.equals(serviceInfo.getKey(), UtilAndComs.ALL_IPS) || StringUtils

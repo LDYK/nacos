@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * The manager of {@code IpPortBasedClient} and ephemeral.
- *
+ * 管理Ephemeral类型节点的客户端管理器
  * @author xiweng.yy
  */
 

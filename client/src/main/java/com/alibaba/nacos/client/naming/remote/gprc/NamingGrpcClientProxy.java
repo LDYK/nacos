@@ -73,8 +73,8 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
  */
 public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
 
-    // 环境信息：dev、test、product等
-    // namespace -> service -> group -> cluster -> instance
+    // 环境信息：dev、test、product等，不同的服务可以归类到同一分组
+    // namespace -> group -> service -> cluster -> instance
     private final String namespaceId;
     
     private final String uuid;

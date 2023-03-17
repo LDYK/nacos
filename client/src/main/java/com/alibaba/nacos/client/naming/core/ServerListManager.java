@@ -64,8 +64,8 @@ public class ServerListManager implements ServerListFactory, Closeable {
     //隔多久拉取一次远程服务列表
     private final long refreshServerListInternal = TimeUnit.SECONDS.toMillis(30);
 
-    // 环境信息：dev、test、product等
-    // namespace -> service -> group -> cluster -> instance
+    // 环境信息：dev、test、product等，不同的服务可以归类到同一分组
+    // namespace -> group -> service -> cluster -> instance
     private final String namespace;
     
     private final AtomicInteger currentIndex = new AtomicInteger();

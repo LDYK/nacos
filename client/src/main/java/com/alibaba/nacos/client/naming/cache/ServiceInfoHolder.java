@@ -57,30 +57,42 @@ public class ServiceInfoHolder implements Closeable {
     private static final String FILE_PATH_NAMING = "naming";
     
     private static final String USER_HOME_PROPERTY = "user.home";
-    
+
+    //serviceInfoMap是线程安全的是因为更新服务实例有多个场景
+    // 1、服务第一次查询的时候会更新
+    // 2、定时任务会定时更新任务
+    // 3、推送任务也会触发更新
     private final ConcurrentMap<String, ServiceInfo> serviceInfoMap;
-    
+
+    // 故障发生器
     private final FailoverReactor failoverReactor;
-    
+
+    // 是否推空保护
     private final boolean pushEmptyProtection;
 
     // 服务列表的缓存和failover的目录
     private String cacheDir;
-    
+
     private String notifierEventScope;
     
     public ServiceInfoHolder(String namespace, String notifierEventScope, NacosClientProperties properties) {
         initCacheDir(namespace, properties);
+        // 是否加载本地磁盘
         if (isLoadCacheAtStart(properties)) {
+            // 启动时从本地文件加载服务列表到serviceInfoMap缓存中
             this.serviceInfoMap = new ConcurrentHashMap<>(DiskCache.read(this.cacheDir));
         } else {
             this.serviceInfoMap = new ConcurrentHashMap<>(16);
         }
+        //故障转移落盘
         this.failoverReactor = new FailoverReactor(this, cacheDir);
+        // 是否推空保护
         this.pushEmptyProtection = isPushEmptyProtect(properties);
         this.notifierEventScope = notifierEventScope;
     }
-    
+
+    // 初始化故障落盘路径，默认为：~/nacos/naming/“namespace”
+    // 服务持久化目录（在服务启动时如果设置了【namingLoadCacheAtStart】属性自动总该目录加载service列表  减轻服务刚启动时的请求的压力）
     private void initCacheDir(String namespace, NacosClientProperties properties) {
         String jmSnapshotPath = properties.getProperty(JM_SNAPSHOT_PATH_PROPERTY);
     
@@ -97,7 +109,8 @@ public class ServiceInfoHolder implements Closeable {
                     + File.separator + FILE_PATH_NAMING + File.separator + namespace;
         }
     }
-    
+
+    // namingLoadCacheAtStart 判断是否加载磁盘服务列表
     private boolean isLoadCacheAtStart(NacosClientProperties properties) {
         boolean loadCacheAtStart = false;
         if (properties != null && StringUtils

@@ -27,6 +27,13 @@ import java.util.Collection;
  *
  * @author xiweng.yy
  */
+// 服务提供者和服务消费者以及其他的集群节点都属于Client
+// 服务提供者和服务消费者属于临时节点 集群节点 属于非临时节点
+// Client 相关内容主要包括几大核心类：
+// 1、ClientManager 存储所有的客户端信息 以及客户端的crud功能 以及提供定时任务清理过期的客户端
+// 2、ClientManagerDelegate：统一客户端管理器的代理类
+// 3、EphemeralIpPortClientManager：管理临时节点的客户端管理器
+// 4、IpPortBasedClient：基于ip和端口的客户端
 public interface ClientManager {
     
     /**

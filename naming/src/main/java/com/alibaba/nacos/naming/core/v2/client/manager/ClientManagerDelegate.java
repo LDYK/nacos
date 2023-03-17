@@ -35,6 +35,13 @@ import java.util.HashSet;
  * 统一的客户端管理器代理类
  * @author xiweng.yy
  */
+// 服务提供者和服务消费者以及其他的集群节点都属于Client
+// 服务提供者和服务消费者属于临时节点 集群节点 属于非临时节点
+// Client 相关内容主要包括几大核心类：
+// 1、ClientManager 存储所有的客户端信息 以及客户端的crud功能 以及提供定时任务清理过期的客户端
+// 2、ClientManagerDelegate：统一客户端管理器的代理类
+// 3、EphemeralIpPortClientManager：管理临时节点的客户端管理器
+// 4、IpPortBasedClient：基于ip和端口的客户端
 @DependsOn({"clientServiceIndexesManager", "namingMetadataManager"})
 @Component("clientManager")
 public class ClientManagerDelegate implements ClientManager {
@@ -51,11 +58,12 @@ public class ClientManagerDelegate implements ClientManager {
             EphemeralIpPortClientManager ephemeralIpPortClientManager,
             PersistentIpPortClientManager persistentIpPortClientManager) {
         this.connectionBasedClientManager = connectionBasedClientManager;
+        // 管理Ephemeral类型节点的客户端管理器
         this.ephemeralIpPortClientManager = ephemeralIpPortClientManager;
         this.persistentIpPortClientManager = persistentIpPortClientManager;
     }
 
-    // 新客户端接入
+    // 创建一个新的客户端并创建心跳检查任务
     @Override
     public boolean clientConnected(String clientId, ClientAttributes attributes) {
         return getClientManagerById(clientId).clientConnected(clientId, attributes);
@@ -101,7 +109,7 @@ public class ClientManagerDelegate implements ClientManager {
         return result;
     }
 
-    // 该客户端的健康检查等是否有当前服务器负责
+    // 在一个集群里面判断该客户端健康检查是不是由当前的服务器负责
     @Override
     public boolean isResponsibleClient(Client client) {
         return getClientManagerById(client.getClientId()).isResponsibleClient(client);

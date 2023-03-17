@@ -105,8 +105,8 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
     
     private static final String REGISTER_ENABLE_PARAM = "enable";
 
-    // 环境信息：dev、test、product等
-    // namespace -> service -> group -> cluster -> instance
+    // 环境信息：dev、test、product等，不同的服务可以归类到同一分组
+    // namespace -> group -> service -> cluster -> instance
     private final String namespaceId;
 
     //serverList管理类
