@@ -54,6 +54,7 @@ import static com.alibaba.nacos.naming.misc.Loggers.SRV_LOG;
  *
  * @author xiweng.yy
  */
+// 对Tcp客户端的健康检查
 @Component
 public class TcpHealthCheckProcessor implements HealthCheckProcessorV2, Runnable {
     
@@ -91,7 +92,8 @@ public class TcpHealthCheckProcessor implements HealthCheckProcessorV2, Runnable
             throw new IllegalStateException("Error while initializing SuperSense(TM).");
         }
     }
-    
+
+    // 创建Beat任务放入队列，等待执行器来执行
     @Override
     public void process(HealthCheckTaskV2 task, Service service, ClusterMetadata metadata) {
         HealthCheckInstancePublishInfo instance = (HealthCheckInstancePublishInfo) task.getClient()
@@ -107,6 +109,7 @@ public class TcpHealthCheckProcessor implements HealthCheckProcessorV2, Runnable
                     .reEvaluateCheckRT(task.getCheckRtNormalized() * 2, task, switchDomain.getTcpHealthParams());
             return;
         }
+        // 创建Beat任务放入队列，等待执行器来执行
         taskQueue.add(new Beat(task, service, metadata, instance));
         MetricsMonitor.getTcpHealthCheckMonitor().incrementAndGet();
     }
@@ -131,7 +134,8 @@ public class TcpHealthCheckProcessor implements HealthCheckProcessorV2, Runnable
             f.get();
         }
     }
-    
+
+    // 在服务初始化时，该线程不断从队列获取数据来执行，执行的线程是一个内部Callable实现TaskProcessor，该任务的处理就是构建一个NIO的SocketChannel来向客户端实例验证客户端的连通性；
     @Override
     public void run() {
         while (true) {

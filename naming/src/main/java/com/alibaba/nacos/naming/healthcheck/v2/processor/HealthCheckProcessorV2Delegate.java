@@ -58,6 +58,8 @@ public class HealthCheckProcessorV2Delegate implements HealthCheckProcessorV2 {
         if (processor == null) {
             processor = healthCheckProcessorMap.get(NoneHealthCheckProcessor.TYPE);
         }
+        // 选择对应的healthCheckProcessor执行
+        // 以TcpHealthCheckProcessor为例
         processor.process(task, service, metadata);
     }
     

@@ -44,6 +44,11 @@ import java.util.Optional;
  *
  * @author xiweng.yy
  */
+
+// ExpiredInstanceChecker，它的检查机制是：如果当前服务实例心跳检查超过30s（默认），那么
+//   a、从服务端的该服务的Client对象中实例集合删除该服务实例；
+//   b、发布服务注销事件：ClientOperationEvent.ClientDeregisterServiceEvent；
+//   c、发布服务实例元数据变更事件：MetadataEvent.InstanceMetadataEvent
 public class ExpiredInstanceChecker implements InstanceBeatChecker {
     
     @Override

@@ -74,7 +74,10 @@ public class ConnectionBasedClient extends AbstractClient {
     public void setLastRenewTime() {
         this.lastRenewTime = System.currentTimeMillis();
     }
-    
+
+    // 满足下面的条件该方法返回true：
+    //  1）非isNative客户端，则说明是否过期是针对同步而来的客户端；
+    //  2）当前时间与上次续约时间（lastRenewTime）时间间隔大于客户端过期时间（默认3m）；
     @Override
     public boolean isExpire(long currentTime) {
         return !isNative() && currentTime - getLastRenewTime() > ClientConfig.getInstance().getClientExpiredTime();

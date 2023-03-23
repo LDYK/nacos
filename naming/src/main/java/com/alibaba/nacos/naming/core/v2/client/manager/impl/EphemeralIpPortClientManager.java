@@ -48,6 +48,10 @@ import java.util.concurrent.TimeUnit;
  * @author xiweng.yy
  */
 
+// 对客户端服务基于IP Port模式的临时服务管理
+// 1、该类里面有一个集合clients，负责存放客户端Client对象IpPortBasedClient
+// 2、该类在初始化的时候，开启了一个定时线程，默认间隔5s执行一次线程ExpiredClientCleaner，该线程的作用时判断客户端连接是否过期，如果过期了，就断开客户端连接；
+
 // @DependsOn注解：表示EphemeralIpPortClientManager的实例化依赖clientServiceIndexesManager的实例化，虽然EphemeralIpPortClientManager并没持有clientServiceIndexesManager对象
 // 所谓的Bean可以是任何Bean：包括@Bean、@Component、@Configuration等一切形式
 @DependsOn("clientServiceIndexesManager")
@@ -78,7 +82,7 @@ public class EphemeralIpPortClientManager implements ClientManager {
         return clientConnected(clientFactory.newClient(clientId, attributes));
     }
 
-    // 初始化客户端 并缓存到map中
+    // 客户端的创建（连接），就是向集合添加客户端，并创建心跳检查任务ClientBeatCheckTaskV2
     @Override
     public boolean clientConnected(final Client client) {
         clients.computeIfAbsent(client.getClientId(), s -> {
@@ -183,6 +187,11 @@ public class EphemeralIpPortClientManager implements ClientManager {
         }
 
         // 判断是否超时
+        // 1、临时服务实例
+        // 2、客户端IpPortBasedClient没有服务实例的发布（注册）且当前时间与客户端最近一次更新时间之差大于默认的30s
+        // 3、客户端没有订阅列表或者当前时间与客户端最近一次更新时间之差大于默认的10s
+        // 4、客户端IpPortBasedClient最近一次更新时间与当前时间之差大于默认的3s
+        // 上面的条件 1 和 2、3 同时满足，或者 1 和 4 同时满足时，则认为IpPortBasedClient过期
         private boolean isExpireClient(long currentTime, IpPortBasedClient client) {
             long noUpdatedTime = currentTime - client.getLastUpdatedTime();
             // 临时节点 && 30s未发布 && 10s未订阅
@@ -190,11 +199,13 @@ public class EphemeralIpPortClientManager implements ClientManager {
                     isExpirePublishedClient(noUpdatedTime, client) && isExpireSubscriberClient(noUpdatedTime, client)
                             || noUpdatedTime > ClientConfig.getInstance().getClientExpiredTime());
         }
-        
+
+        // 指定客户端IpPortBasedClient没有服务实例的发布（注册）且当前时间与客户端最近一次更新时间之差大于默认30s，则认为IpPortBasedClient过期
         private boolean isExpirePublishedClient(long noUpdatedTime, IpPortBasedClient client) {
             return client.getAllPublishedService().isEmpty() && noUpdatedTime > Constants.DEFAULT_IP_DELETE_TIMEOUT;
         }
-        
+
+        // 指定客户端没有订阅列表或者当前时间与客户端最近一次更新时间之差大于默认10s，则任务IpPortBasedClient过期
         private boolean isExpireSubscriberClient(long noUpdatedTime, IpPortBasedClient client) {
             return client.getAllSubscribeService().isEmpty() || noUpdatedTime > switchDomain.getDefaultPushCacheMillis();
         }

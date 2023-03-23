@@ -19,6 +19,24 @@ package com.alibaba.nacos.api.grpc.auto;
 /**
  * Protobuf type {@code Metadata}
  */
+
+// Nacos2.x 在服务端增加了客户端服务元数据管理机制。
+// 元数据信息随着服务实例的存在而存在，如果服务或者实例不存在，那么对应的元数据信息也会被移除。
+// Nacos服务端，有4类Metadata对象
+//  1）ClusterMetadata：集群元数据信息，维护服务集群健康检查用；
+//  2）ExpiredMetadata：过期元数据信息，维护过期的服务元数据；过期的元数据信息会被删除；
+//  3）ServiceMetadata：服务元数据信息
+//     a、ephemeral：默认true，代表临时的客户端注册
+//     b、protectThreshold：服务保护阈值，默认是0。（在服务实例查询时，如果服务的健康实例数占比小于等于这个阈值时，那么就会返回服务的所有实例）
+//     c、selector：Selector类型，表示在服务发现是用于负载均衡使用，已废弃，默认是NoneSelector对象；
+//     d、extendData：存放服务扩展信息的Map集合
+//     e、clusters：存放服务拥有集群的Map集合；
+//  4）InstanceMetadata：实例元数据
+//     a、weight：代表实例权重，可以在负载均衡上使用
+//     b、enabled：实例是否可用，默认true；
+//     c、extendData：存放实例扩展信息的Map集合
+//  在服务端，这些元数据的管理，是交给单例类 NamingMetadataManager 管理
+
 public  final class Metadata extends
     com.google.protobuf.GeneratedMessageV3 implements
     // @@protoc_insertion_point(message_implements:Metadata)

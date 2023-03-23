@@ -69,7 +69,9 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
     private volatile boolean cancelled = false;
     
     public HealthCheckTaskV2(IpPortBasedClient client) {
+        // 设置客户端
         this.client = client;
+        // 取IpPortBasedClient的responsibleId，也就是ip:port
         this.taskId = client.getResponsibleId();
     }
     
@@ -88,9 +90,12 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
             return;
         }
         // first check time delay
+        // 开关配置类不为空
         if (null != switchDomain) {
+            // 随机数+2000
             checkRtNormalized = LOWER_CHECK_RT + RandomUtils.nextInt(0, RandomUtils.nextInt(0, switchDomain.getTcpHealthParams().getMax()));
         } else {
+            // 当前线程首次取0～5000之间一个随机数+2000作为线程执行的间隔时间(checkRtNormalized)，单位ms
             checkRtNormalized = LOWER_CHECK_RT + RandomUtils.nextInt(0, UPPER_RANDOM_CHECK_RT);
         }
         checkRtBest = Long.MAX_VALUE;
@@ -105,7 +110,11 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
     public String getTaskId() {
         return taskId;
     }
-    
+
+    // 健康检查验证
+    // 1、获取所有客户端注册的服务，循环每个服务，在每个循环体内，查找服务的发布信息对应的集群元数据信息，作为健康检查的参数
+    // 2、健康检查的处理交给HealthCheckProcessorV2Delegate。HealthCheckProcessorV2Delegate是健康检查的处理器代理，在这里默认就是交给TcpHealthCheckProcessor来处理
+    // 3、在方法结束时，向线程池重新提交任务（间隔上面的checkRtNormalized时间）
     @Override
     public void doHealthCheck() {
         try {
@@ -114,6 +123,8 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
                 if (switchDomain.isHealthCheckEnabled(each.getGroupedServiceName())) {
                     InstancePublishInfo instancePublishInfo = client.getInstancePublishInfo(each);
                     ClusterMetadata metadata = getClusterMetadata(each, instancePublishInfo);
+                    // 健康检查的处理交给HealthCheckProcessorV2Delegate。HealthCheckProcessorV2Delegate是健康检查的处理器代理，在这里默认就是交给TcpHealthCheckProcessor来处理
+                    // 处理方式是创建Beat任务放入队列，等待执行器来执行
                     ApplicationUtils.getBean(HealthCheckProcessorV2Delegate.class).process(this, each, metadata);
                     if (Loggers.EVT_LOG.isDebugEnabled()) {
                         Loggers.EVT_LOG.debug("[HEALTH-CHECK] schedule health check task: {}", client.getClientId());

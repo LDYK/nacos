@@ -42,6 +42,10 @@ import java.util.Optional;
  *
  * @author xiweng.yy
  */
+// UnhealthyInstanceChecker，它的检查机制是：如果当前服务实例心跳检查超过15s（默认），那么
+//  a、设置服务实例health=false
+//  b、发布服务变更事件：ServiceEvent.ServiceChangedEvent
+//  c、发布客户端变更事件：ClientEvent.ClientChangedEvent
 public class UnhealthyInstanceChecker implements InstanceBeatChecker {
     
     @Override

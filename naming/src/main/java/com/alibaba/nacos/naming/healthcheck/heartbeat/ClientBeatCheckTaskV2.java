@@ -33,6 +33,20 @@ import java.util.Collection;
  *
  * @author nkorange
  */
+
+// 基于IPPort的Client对象中，客户端服务如果是临时实例（ephemeral=true），那么就会创建这个健康检查任务。
+// 执行流程
+//    1、从客户端的所有服务发布（注册）集合中取出对应的客户端服务；
+//    2、基于拦截器的模式，对每个拦截执行InstanceBeatCheckTask对象的检查，默认情况下，有2个实例心跳检查器InstanceBeatChecker
+//      1)、UnhealthyInstanceChecker，它的检查机制是：如果当前服务实例心跳检查超过15s（默认），那么
+//          a、设置服务实例health=false
+//          b、发布服务变更事件：ServiceEvent.ServiceChangedEvent
+//          c、发布客户端变更事件：ClientEvent.ClientChangedEvent
+//      2)、ExpiredInstanceChecker，它的检查机制是：如果当前服务实例心跳检查超过30s（默认），那么
+//          a、从服务端的该服务的Client对象中实例集合删除该服务实例；
+//          b、发布服务注销事件：ClientOperationEvent.ClientDeregisterServiceEvent；
+//          c、发布服务实例元数据变更事件：MetadataEvent.InstanceMetadataEvent
+
 public class ClientBeatCheckTaskV2 extends AbstractExecuteTask implements BeatCheckTask, NacosHealthCheckTask {
 
     // 客户端对象

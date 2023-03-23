@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author xiweng.yy
  */
-// Nacos数据（如配置和服务）描述信息，如服务版本、权重、容灾策略、负载均衡策略、鉴权配置、各种自定义标签 (label)，从作用范围来看，分为服务级别的元信息、集群的元信息及实例的元信息。
+// 集群元数据信息，维护服务集群健康检查用
 public class ClusterMetadata implements Serializable {
     
     private static final long serialVersionUID = -80030989533083615L;

@@ -31,6 +31,10 @@ import java.util.concurrent.TimeUnit;
  *
  * @author xiweng.yy
  */
+// 1、ExpiredMetadataCleaner是一个线程，在服务端初始化时，交给一个执行器来执行，默认间隔5s执行一次；
+// 2、在每次执行时，首先从NamingMetadataManager实例中获取到所有的expiredMetadataInfos信息；
+// 3、然后比较当前时间与ExpiredMetadataInfo创建时间之差是否大于过期清理时间（默认60s）；
+// 4、满足大于过期清理时间的情况下调用NamingMetadataOperateService的删除服务元数据或者实例元数据方法，来向其他Nacos节点发送同步；
 @Component
 public class ExpiredMetadataCleaner extends AbstractNamingCleaner {
     

@@ -37,7 +37,9 @@ import java.util.Collection;
 // 1、ClientManager：存储所有的客户端信息 以及客户端的crud功能 以及提供定时任务清理过期的客户端
 // 2、ClientManagerDelegate：统一客户端管理器的代理类
 // 3、EphemeralIpPortClientManager：管理临时节点的客户端管理器
-// 4、IpPortBasedClient：基于ip和端口的客户端
+// 4、IpPortBasedClient：基于ip和端口的客户端，继承抽象类AbstractClient
+// 5、ConnectionBasedClient：基于TCP的客户端定义，继承抽象类AbstractClient
+// 6、ClientFactory负责定义创建Client对象
 public interface Client {
     
     /**

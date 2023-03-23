@@ -40,6 +40,14 @@ import java.util.concurrent.ConcurrentMap;
  *
  * @author xiweng.yy
  */
+// 在服务端，这些元数据的管理，是交给单例类NamingMetadataManager管理。
+// 客户端与服务端失联之后，就会通过NamingMetadataManager订阅处理，将服务元数据信息加入到过期元数据信息集合中，这些过期元数据信息的清理就交给ExpiredMetadataCleaner处理。
+// 该类也是一个订阅者实例，继承了抽象类SmartSubscriber，表示可以订阅多个事件:
+//   1）MetadataEvent.InstanceMetadataEvent
+//   2）MetadataEvent.ServiceMetadataEvent
+//   3）ClientEvent.ClientDisconnectEvent
+// NamingMetadataManager的主要作用就是负责查询、维护服务的服务元数据信息、实例元数据信息和过期元数据信息，同时作为订阅者，对上面3个事件进行事件的处理
+// NamingMetadataOperateService 用于Node节点之间元数据信息一致性的处理
 @Component
 public class NamingMetadataManager extends SmartSubscriber {
     
@@ -231,7 +239,8 @@ public class NamingMetadataManager extends SmartSubscriber {
             handleClientDisconnectEvent((ClientEvent.ClientDisconnectEvent) event);
         }
     }
-    
+
+    // 客户端与服务端失联，将客户端对应的实例加入到过期元数据（ExpiredMetadataInfo）集合，等待删除
     private void handleClientDisconnectEvent(ClientEvent.ClientDisconnectEvent event) {
         for (Service each : event.getClient().getAllPublishedService()) {
             String metadataId = event.getClient().getInstancePublishInfo(each).getMetadataId();
@@ -247,16 +256,22 @@ public class NamingMetadataManager extends SmartSubscriber {
             updateExpiredInfo(event.isExpired(), ExpiredMetadataInfo.newExpiredServiceMetadata(service));
         }
     }
-    
+
+    // 接收到服务元数据信息时间后
+    // 如果是expired放入过期元数据集合等待删除
+    // 如果是expired为false，表示有的服务重新注册，从过期元数据中删除
     private void handleInstanceMetadataEvent(MetadataEvent.InstanceMetadataEvent event) {
         Service service = event.getService();
         String metadataId = event.getMetadataId();
         if (containInstanceMetadata(service, metadataId)) {
+            // 如果是Expired放入过期元数据
             updateExpiredInfo(event.isExpired(),
                     ExpiredMetadataInfo.newExpiredInstanceMetadata(event.getService(), event.getMetadataId()));
         }
     }
-    
+
+    // 如果是expired为true，放入过期元数据集合等待删除
+    // 如果是expired为false，表示有的服务重新注册，从过期元数据中删除
     private void updateExpiredInfo(boolean expired, ExpiredMetadataInfo expiredMetadataInfo) {
         if (expired) {
             expiredMetadataInfos.add(expiredMetadataInfo);

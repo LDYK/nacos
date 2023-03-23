@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author xiweng.yy
  */
-// Nacos数据（如配置和服务）描述信息，如服务版本、权重、容灾策略、负载均衡策略、鉴权配置、各种自定义标签 (label)，从作用范围来看，分为服务级别的元信息、集群的元信息及实例的元信息。
+// 实例元数据
 public class InstanceMetadata implements Serializable {
     
     private static final long serialVersionUID = -8477858617353459226L;
@@ -33,13 +33,16 @@ public class InstanceMetadata implements Serializable {
     /**
      * instance weight.
      */
+    // 实例权重，可以在负载均衡上使用
     private double weight = 1.0D;
     
     /**
      * If instance is enabled to accept request.
      */
+    // 实例是否可用，默认true
     private boolean enabled = true;
-    
+
+    // 存放实例扩展信息的Map集合
     private Map<String, Object> extendData = new ConcurrentHashMap<>(1);
     
     public double getWeight() {

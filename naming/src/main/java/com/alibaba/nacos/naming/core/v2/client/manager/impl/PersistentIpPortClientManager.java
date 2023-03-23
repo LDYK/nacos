@@ -42,6 +42,9 @@ import java.util.concurrent.ConcurrentMap;
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  * @author xiweng.yy
  */
+
+// 对客户端服务基于持久化模式的服务管理，同EphemeralIpPortClientManager类似，区别在于持久化实例在这里没有同EphemeralIpPortClientManager类似的心跳检查机制和过期客户端检查
+
 @Component("persistentIpPortClientManager")
 public class PersistentIpPortClientManager implements ClientManager {
     

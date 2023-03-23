@@ -28,6 +28,7 @@ import static com.alibaba.nacos.naming.constants.ClientConstants.REVISION;
  *
  * @author xiweng.yy
  */
+// 负责创建ConnectionBasedClient工厂对象，类型名为default，负责创建ConnectionBasedClient，表示创建基于Grpc连接的客户端
 public class ConnectionBasedClientFactory implements ClientFactory<ConnectionBasedClient> {
     
     @Override

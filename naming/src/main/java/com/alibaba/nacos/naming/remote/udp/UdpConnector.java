@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author xiweng.yy
  */
+// UDP连接，负责发送udp数据和监听响应返回
 @Component
 public class UdpConnector {
     
@@ -74,6 +75,7 @@ public class UdpConnector {
      * @throws NacosException nacos exception during sending
      */
     public void sendData(AckEntry ackEntry) throws NacosException {
+        // 直接使用UDP的DatagramSocket发送DatagramPacket数据报文
         if (null == ackEntry) {
             return;
         }
@@ -93,6 +95,7 @@ public class UdpConnector {
      * @param pushCallBack push callback
      */
     public void sendDataWithCallback(AckEntry ackEntry, PushCallBack pushCallBack) {
+        // UdpAsyncSender线程，用于异步发送UDP数据，并在发生异常时执行回调处理，而且在UdpRetrySender线程里面，10s后再检测是否收到回应，在没有回应时，重新发送（默认重试1次）
         if (null == ackEntry) {
             return;
         }
@@ -133,16 +136,21 @@ public class UdpConnector {
         @Override
         public void run() {
             try {
+                // 存放pushCallback
                 callbackMap.put(ackEntry.getKey(), callBack);
+                // 存放回应ackEntry
                 ackMap.put(ackEntry.getKey(), ackEntry);
                 Loggers.PUSH.info("send udp packet: " + ackEntry.getKey());
                 ackEntry.increaseRetryTime();
+                // DatagramSocket
                 doSend(ackEntry.getOrigin());
+                // 默认18s之后执行UdpRetrySender（在没有收到回应时重试）
                 GlobalExecutor.scheduleRetransmitter(new UdpRetrySender(ackEntry), Constants.ACK_TIMEOUT_NANOS,
                         TimeUnit.NANOSECONDS);
             } catch (Exception e) {
                 ackMap.remove(ackEntry.getKey());
                 callbackMap.remove(ackEntry.getKey());
+                // 异常执行回调函数
                 callBack.onFail(e);
             }
         }
@@ -163,6 +171,7 @@ public class UdpConnector {
                 return;
             }
             // Match max retry, push failed.
+            // 默认1次
             if (ackEntry.getRetryTimes() > Constants.UDP_MAX_RETRY_TIMES) {
                 Loggers.PUSH.warn("max re-push times reached, retry times {}, key: {}", ackEntry.getRetryTimes(),
                         ackEntry.getKey());
@@ -196,6 +205,7 @@ public class UdpConnector {
                     InetSocketAddress socketAddress = (InetSocketAddress) packet.getSocketAddress();
                     String ip = socketAddress.getAddress().getHostAddress();
                     int port = socketAddress.getPort();
+                    // 数据发送回应与服务器接收时间之差大于10s
                     if (System.nanoTime() - ackPacket.lastRefTime > Constants.ACK_TIMEOUT_NANOS) {
                         Loggers.PUSH.warn("ack takes too long from {} ack json: {}", packet.getSocketAddress(), json);
                     }
@@ -205,6 +215,7 @@ public class UdpConnector {
                         throw new IllegalStateException(
                                 "unable to find ackEntry for key: " + ackKey + ", ack json: " + json);
                     }
+                    // 请求成功后，执行callback，默认只有记录数据指标（支持扩展）
                     callbackSuccess(ackKey);
                 } catch (Throwable e) {
                     Loggers.PUSH.error("[NACOS-PUSH] error while receiving ack data", e);

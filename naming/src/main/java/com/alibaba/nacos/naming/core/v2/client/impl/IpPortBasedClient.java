@@ -42,18 +42,18 @@ public class IpPortBasedClient extends AbstractClient {
     
     public static final String ID_DELIMITER = "#";
 
-    // 格式ip:port#true
+    // 格式 ip:port#true
     private final String clientId;
     
     private final boolean ephemeral;
 
-    // 用于计算哪台服务器负责该client的参数
+    // 用于计算哪台服务器负责该client的参数，默认responsibleId的值就是从clientId中取#之前的字符串
     private final String responsibleId;
 
-    // 定时检查临时节点发起的心跳
+    // 定时检查临时节点发起的心跳，是一个线程
     private ClientBeatCheckTaskV2 beatCheckTask;
 
-    // 定时主动检查非临时节点比如长链接的节点[集群服务]的健康检查
+    // 定时主动检查非临时节点比如长链接的节点[集群服务]的健康检查，是一个线程
     private HealthCheckTaskV2 healthCheckTaskV2;
 
     public IpPortBasedClient(String clientId, boolean ephemeral) {
@@ -93,11 +93,15 @@ public class IpPortBasedClient extends AbstractClient {
     }
 
     // 客户端添加服务发布信息
+    // 调用父类addServiceInstance方法前对参数InstancePublishInfo调用parseToHealthCheckInstance进行类型转化，转化为HealthCheckInstancePublishInfo
     @Override
     public boolean addServiceInstance(Service service, InstancePublishInfo instancePublishInfo) {
         return super.addServiceInstance(service, parseToHealthCheckInstance(instancePublishInfo));
     }
-    
+    // 同时满足下面的条件该方法返回true
+    //  1）ephemeral=true，默认就是true
+    //  2）所有客户端注册的服务集合publishers是空（也就是没有客户端注册信息）；
+    //  3）当前时间与客户端最近更新时间之差大于客户端过期时间（默认3m）；
     @Override
     public boolean isExpire(long currentTime) {
         return isEphemeral() && getAllPublishedService().isEmpty() && currentTime - getLastUpdatedTime() > ClientConfig
@@ -148,6 +152,8 @@ public class IpPortBasedClient extends AbstractClient {
     
     /**
      * Init client.
+     * 针对临时客户端，创建任务ClientBeatCheckTaskV2，交给线程池管理，间隔5s秒执行；所以对于默认情况下，是通过这里的Client心跳检查来验证客户端是否健康的。
+     * 针对非临时客户端，创建任务HealthCheckTaskV2，交给线程池管理，延迟2s+(0~5s一个随机数)时间，这个时间首次使用后，后面的间隔时长都是一致的。
      */
     public void init() {
         if (ephemeral) {
