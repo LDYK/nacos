@@ -30,7 +30,8 @@ import java.util.Collection;
  *
  * @author xiweng.yy
  */
-// 在服务端通过接口Client及相关的抽象类和实现类对客户端进行管理
+// 服务提供者（Provider）、消费者（Consumer）都属于Client，通过接口Client及相关的抽象类和实现类对客户端进行管理
+// 服务端（Server：注册中心）
 // 服务提供者和服务消费者属于临时节点 集群节点 属于非临时节点
 // Client 相关内容主要包括几大核心类：
 // 1、ClientManager：存储所有的客户端信息 以及客户端的crud功能 以及提供定时任务清理过期的客户端

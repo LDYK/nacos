@@ -45,15 +45,19 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 @Component
 public class InstanceMetadataProcessor extends RequestProcessor4CP {
-    
+
+    // 统一的元数据管理器 管理服务元数据 实例元数据 过期元数据信息
     private final NamingMetadataManager namingMetadataManager;
-    
+
+    // jraft 消息的序列号器
     private final Serializer serializer;
     
     private final Type processType;
-    
+
+    // 普通的lock 控制读写互斥操作：在快照的加载和保存操作场景使用
     private final ReentrantReadWriteLock lock;
-    
+
+    // 读锁 在对内存中的元数据crud操作使用
     private final ReentrantReadWriteLock.ReadLock readLock;
     
     @SuppressWarnings("unchecked")
@@ -63,6 +67,8 @@ public class InstanceMetadataProcessor extends RequestProcessor4CP {
         this.processType = TypeUtils.parameterize(MetadataOperation.class, InstanceMetadata.class);
         this.lock = new ReentrantReadWriteLock();
         this.readLock = lock.readLock();
+        // 向JRaftProtocol 协议注册 InstanceMetadataProcessor
+        // 注册后负责处理JRaft框架底层分发的实例元数据变更任务
         protocolManager.getCpProtocol().addRequestProcessors(Collections.singletonList(this));
     }
     

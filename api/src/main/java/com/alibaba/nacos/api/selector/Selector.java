@@ -36,6 +36,7 @@ import java.io.Serializable;
  * @author chenglu
  * @date 2021-07-09 21:24
  */
+// Selector作为负载均衡的统一抽象
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 public interface Selector<R, C, E> extends Serializable {
     

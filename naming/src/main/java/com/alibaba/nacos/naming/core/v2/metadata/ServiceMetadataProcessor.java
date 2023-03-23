@@ -58,7 +58,8 @@ public class ServiceMetadataProcessor extends RequestProcessor4CP {
     private final ReentrantReadWriteLock lock;
     
     private final ReentrantReadWriteLock.ReadLock readLock;
-    
+
+    // 初始化属性跟InstanceMetadataProcessor 完全一致
     @SuppressWarnings("unchecked")
     public ServiceMetadataProcessor(NamingMetadataManager namingMetadataManager, ProtocolManager protocolManager,
             ServiceStorage serviceStorage) {
@@ -68,6 +69,8 @@ public class ServiceMetadataProcessor extends RequestProcessor4CP {
         this.processType = TypeUtils.parameterize(MetadataOperation.class, ServiceMetadata.class);
         this.lock = new ReentrantReadWriteLock();
         this.readLock = lock.readLock();
+        // 向JRaftProtocol 协议注册 InstanceMetadataProcessor
+        // 注册后负责处理JRaft框架底层分发的服务的元数据变更任务
         protocolManager.getCpProtocol().addRequestProcessors(Collections.singletonList(this));
     }
     

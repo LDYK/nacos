@@ -91,6 +91,7 @@ public class ServiceOperatorV2Impl implements ServiceOperator {
             throw new NacosApiException(NacosException.INVALID_PARAM, ErrorCode.SERVICE_NOT_EXIST,
                     String.format("service %s not found!", service.getGroupedServiceName()));
         }
+        // 调用NamingMetadataOperateService的updateServiceMetadata方法
         metadataOperateService.updateServiceMetadata(service, metadata);
     }
     

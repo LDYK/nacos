@@ -187,6 +187,7 @@ public class ServiceController {
         com.alibaba.nacos.naming.core.v2.pojo.Service service = com.alibaba.nacos.naming.core.v2.pojo.Service
                 .newService(namespaceId, NamingUtils.getGroupName(serviceName),
                         NamingUtils.getServiceName(serviceName));
+        // 调用ServiceOperatorV2Impl的update方法
         getServiceOperator().update(service, serviceMetadata);
         return "ok";
     }

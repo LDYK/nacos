@@ -26,19 +26,24 @@ import com.alibaba.nacos.naming.misc.ClientConfig;
  *
  * @author xiweng.yy
  */
+
+// 基于TCP的客户端定义，继承抽象类AbstractClient
 public class ConnectionBasedClient extends AbstractClient {
-    
+
+    // 连接唯一表示
     private final String connectionId;
     
     /**
      * {@code true} means this client is directly connect to current server. {@code false} means this client is synced
      * from other server.
      */
+    // 表示当前Client是否是直接连接到当前Nacos服务的，如果是false则表示是从其他节点同步而来；
     private final boolean isNative;
     
     /**
      * Only has meaning when {@code isNative} is false, which means that the last time verify from source server.
      */
+    // 只在isNative=true时有意义，表示客户端最近一次续约（代表最近一次有效连接）时间；
     private volatile long lastRenewTime;
     
     public ConnectionBasedClient(String connectionId, boolean isNative, Long revision) {

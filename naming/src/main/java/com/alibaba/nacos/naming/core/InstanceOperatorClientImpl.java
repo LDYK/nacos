@@ -140,14 +140,18 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
     @Override
     public void updateInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
         NamingUtils.checkInstanceIsLegal(instance);
-        
+        //根据命名空间 服务名 临时节点标志新建服务对象
         Service service = getService(namespaceId, serviceName, instance.isEphemeral());
+        //服务管理器如果不存在该服务就报错
         if (!ServiceManager.getInstance().containSingleton(service)) {
             throw new NacosApiException(NacosException.INVALID_PARAM, ErrorCode.INSTANCE_ERROR,
                     "service not found, namespace: " + namespaceId + ", service: " + service);
         }
+        //生成metadataId
+        //metadataId的生成逻辑 ip:port:cluster
         String metadataId = InstancePublishInfo
                 .genMetadataId(instance.getIp(), instance.getPort(), instance.getClusterName());
+        //调用NamingMetadataOperateService的updateInstanceMetadata方法
         metadataOperateService.updateInstanceMetadata(service, metadataId, buildMetadata(instance));
     }
     

@@ -56,6 +56,7 @@ public class NamingMetadataOperateService {
     public void updateServiceMetadata(Service service, ServiceMetadata serviceMetadata) {
         MetadataOperation<ServiceMetadata> operation = buildMetadataOperation(service);
         operation.setMetadata(serviceMetadata);
+        //构建WriteRequest请求WriteRequest 是定义constency.proto文件中
         WriteRequest operationLog = WriteRequest.newBuilder().setGroup(Constants.SERVICE_METADATA)
                 .setOperation(DataOperation.CHANGE.name()).setData(ByteString.copyFrom(serializer.serialize(operation)))
                 .build();
@@ -86,6 +87,7 @@ public class NamingMetadataOperateService {
         MetadataOperation<InstanceMetadata> operation = buildMetadataOperation(service);
         operation.setTag(metadataId);
         operation.setMetadata(instanceMetadata);
+        //构建WriteRequest请求WriteRequest 是定义constency.proto文件中
         WriteRequest operationLog = WriteRequest.newBuilder().setGroup(Constants.INSTANCE_METADATA)
                 .setOperation(DataOperation.CHANGE.name()).setData(ByteString.copyFrom(serializer.serialize(operation)))
                 .build();
@@ -125,7 +127,8 @@ public class NamingMetadataOperateService {
                 .build();
         submitMetadataOperation(operationLog);
     }
-    
+
+    //根据service 构建 MetadataOperation 对象
     private <T> MetadataOperation<T> buildMetadataOperation(Service service) {
         MetadataOperation<T> result = new MetadataOperation<>();
         result.setNamespace(service.getNamespace());
@@ -136,6 +139,7 @@ public class NamingMetadataOperateService {
     
     private void submitMetadataOperation(WriteRequest operationLog) {
         try {
+            //向JRaftProtocol提交请求
             Response response = cpProtocol.write(operationLog);
             if (!response.getSuccess()) {
                 throw new NacosRuntimeException(NacosException.SERVER_ERROR,

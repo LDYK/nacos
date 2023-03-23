@@ -165,6 +165,7 @@ public class InstanceController {
         NamingUtils.checkServiceNameFormat(serviceName);
         Instance instance = HttpRequestInstanceBuilder.newBuilder()
                 .setDefaultInstanceEphemeral(switchDomain.isDefaultInstanceEphemeral()).setRequest(request).build();
+        //调用InstanceOperatorClientImpl类的方法更新实例方法
         getInstanceOperator().updateInstance(namespaceId, serviceName, instance);
         return "ok";
     }

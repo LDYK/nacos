@@ -122,7 +122,8 @@ public class InstancePublishInfo implements Serializable {
                 + ", cluster='" + cluster + '\''
                 + '}';
     }
-    
+
+    //metadataId的生成逻辑 ip:port:cluster
     public static String genMetadataId(String ip, int port, String cluster) {
         return ip + InternetAddressUtil.IP_PORT_SPLITER + port + InternetAddressUtil.IP_PORT_SPLITER + cluster;
     }
