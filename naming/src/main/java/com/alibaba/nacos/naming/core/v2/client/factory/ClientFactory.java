@@ -25,9 +25,9 @@ import com.alibaba.nacos.naming.core.v2.client.ClientAttributes;
  * @author xiweng.yy
  */
 // ClientFactory负责定义创建Client对象
-// 1、ConnectionBasedClientFactory 负责创建ConnectionBasedClient工厂对象，类型名为default，负责创建ConnectionBasedClient，表示创建基于Grpc连接的客户端
-// 2、EphemeralIpPortClientFactory 负责创建IpPortBasedClient工厂对象，类型名为ephemeralIpPort，负责创建IpPortBasedClient，表示创建基于IP地址连接的客户端（临时服务实例）
-// 3、PersistentIpPortClientFactory 负责创建IpPortBasedClient工厂对象，类型名为persistentIpPort，负责创建IpPortBasedClient，表示创建基于IP地址连接的客户端（持久化服务实例）
+// 1、ConnectionBasedClientFactory：负责创建ConnectionBasedClient工厂对象，类型名为default，负责创建ConnectionBasedClient，表示创建基于Grpc连接的客户端
+// 2、EphemeralIpPortClientFactory：负责创建IpPortBasedClient工厂对象，类型名为ephemeralIpPort，负责创建IpPortBasedClient，表示创建基于IP地址连接的客户端（临时服务实例）
+// 3、PersistentIpPortClientFactory：负责创建IpPortBasedClient工厂对象，类型名为persistentIpPort，负责创建IpPortBasedClient，表示创建基于IP地址连接的客户端（持久化服务实例）
 public interface ClientFactory<C extends Client> {
     
     /**

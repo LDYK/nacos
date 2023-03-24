@@ -40,6 +40,7 @@ import java.util.Optional;
  *
  * @author nacos
  */
+// 在基于IPPort的Client对象中，客户端服务如果是非临时实例（ephemeral=false），那么就会创建这个健康检查任务
 public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealthCheckTask {
     
     private static final int LOWER_CHECK_RT = 2000;
