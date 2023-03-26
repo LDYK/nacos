@@ -43,6 +43,9 @@ import java.util.zip.GZIPOutputStream;
  *
  * @author nacos
  */
+
+// UDP推送服务变更：服务信息发生变更（比如注册、反注册）时，发布了服务变更事件，在订阅服务变更事件的监听器里面会找到订阅该服务的客户端，向该这些客户端推送服务变更。
+
 @Component
 @SuppressWarnings("PMD.ThreadPoolCreationRule")
 public class UdpPushService {
@@ -69,6 +72,7 @@ public class UdpPushService {
             AckEntry ackEntry = prepareAckEntry(subscriber, serviceInfo);
             Loggers.PUSH.info("serviceName: {} changed, schedule push for: {}, agent: {}, key: {}", serviceInfo,
                     subscriber.getAddrStr(), subscriber.getAgent(), (ackEntry == null ? null : ackEntry.getKey()));
+            // 调用上面的UdpConnector发送UDP报文
             udpConnector.sendData(ackEntry);
         } catch (Exception e) {
             Loggers.PUSH.error("[NACOS-PUSH] failed to push serviceName: {} to client, error: {}", serviceName, e);
@@ -96,8 +100,13 @@ public class UdpPushService {
     }
     
     private AckEntry prepareAckEntry(Subscriber subscriber, ServiceInfo serviceInfo) {
+        // 建立订阅服务的客户端Socket
         InetSocketAddress socketAddress = new InetSocketAddress(subscriber.getIp(), subscriber.getPort());
         long lastRefTime = System.nanoTime();
+        // 将推送的服务信息转化为Json串，定义UDP发送的数据报Map
+        //      type:dom
+        //      data:服务信息转化为Json字符串
+        //      lastRefTime:当前时间，UDP数据报发送时间
         return prepareAckEntry(socketAddress, prepareHostsData(JacksonUtils.toJson(serviceInfo)), lastRefTime);
     }
     
@@ -110,8 +119,10 @@ public class UdpPushService {
         data.put("lastRefTime", lastRefTime);
         String dataStr = JacksonUtils.toJson(data);
         try {
+            // 将上面的数据报Map转化为UDP数据报发送的字节数组，如果字节数组大于1KB，会进行压缩字节流
             byte[] dataBytes = dataStr.getBytes(StandardCharsets.UTF_8);
             dataBytes = compressIfNecessary(dataBytes);
+            // 构建UDP数据报对象DatagramPacket
             return prepareAckEntry(socketAddress, dataBytes, data, lastRefTime);
         } catch (Exception e) {
             Loggers.PUSH

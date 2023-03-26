@@ -31,6 +31,9 @@ import org.springframework.stereotype.Component;
  *
  * @author xiweng.yy
  */
+
+// UDP数据推送的执行，负责包装UPD要发送的ServiceInfo信息
+
 @Component
 public class PushExecutorUdpImpl implements PushExecutor {
     

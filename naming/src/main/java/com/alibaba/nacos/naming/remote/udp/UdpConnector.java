@@ -41,7 +41,17 @@ import java.util.concurrent.TimeUnit;
  *
  * @author xiweng.yy
  */
-// UDP连接，负责发送udp数据和监听响应返回
+// UdpConnector：是UDP连接，负责发送基于IpPortBasedClient客户端的udp数据和监听响应返回，先来看下udp数据的发送。在UdpConnector类里面定义了一个UDP数据报套接字DatagramSocket，发送的数据报类型是DatagramPacket
+//   1、数据发送方式
+//      1)、正常发送：使用UDP的DatagramSocket发送DatagramPacket数据报
+//      2)、callback发送：定义一个UdpAsyncSender线程，用于异步发送UDP数据，并在发生异常时执行回调处理，而且在UdpRetrySender线程里面，10s后再检测是否收到回应，在没有回应时，重新发送（默认重试1次）。
+//   2、数据接收
+//      1)、UdpReceiver里面，一直在执行DatagramSocket的数据接收，如果定义了callback，就会执行callback的回调方法。这里默认就是记录数据监控指标。
+// UdpPushService：是服务信息发生变更（比如注册、反注册）时，发布了服务变更事件，在订阅服务变更事件的监听器里面会找到订阅该服务的客户端，向该这些客户端推送服务变更。
+// PushExecutorUdpImpl：UDP数据推送的执行，负责包装UPD要发送的ServiceInfo信息
+// RpcPushService：基于GRPC协议的服务就是通过RpcPushService来向订阅该服务的客户端发送服务变更的。
+// PushExecutorRpcImpl：RPC数据推送的执行，负责包装RPC要发送的NotifySubscriberRequest信息，然后调用RpcPushService来发送数据。
+
 @Component
 public class UdpConnector {
     

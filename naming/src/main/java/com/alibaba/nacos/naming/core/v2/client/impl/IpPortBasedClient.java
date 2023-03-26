@@ -29,7 +29,7 @@ import com.alibaba.nacos.naming.monitor.MetricsMonitor;
 import java.util.Collection;
 
 /**
- * 基于ip和端口的客户端比如服务提供者和发布者
+ * 基于ip和端口的客户端比如服务提供者和发布者，UDP协议负责处理基于IpPortBasedClient的客户端的数据推送。
  *
  * Nacos naming client based ip and port.
  *

@@ -31,6 +31,9 @@ import org.springframework.stereotype.Component;
  *
  * @author xiweng.yy
  */
+
+// RPC数据推送的执行，负责包装RPC要发送的NotifySubscriberRequest信息，然后调用RpcPushService来发送数据
+
 @Component
 public class PushExecutorRpcImpl implements PushExecutor {
     

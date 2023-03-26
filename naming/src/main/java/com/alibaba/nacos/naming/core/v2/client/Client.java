@@ -38,9 +38,7 @@ import java.util.Collection;
 // 1、Client：通过接口Client及相关的抽象类和实现类对客户端进行管理
 //    1)、AbstractClient：客户端与服务端创建连接之后，在服务端由继承AbstractClient的具体实例来维护
 //        a、ConnectionBasedClient：基于TCP的客户端定义，继承抽象类AbstractClient
-//        b、IpPortBasedClient：基于IP+Port的客户端定义，继承抽象类AbstractClient
-//        c、
-//        d、
+//        b、IpPortBasedClient：基于IP+Port的客户端定义，继承抽象类AbstractClient，UDP协议负责处理基于IpPortBasedClient的客户端的数据推送
 //    2)、ClientFactory：负责定义创建Client对象
 //        a、ConnectionBasedClientFactory：负责创建ConnectionBasedClient工厂对象，类型名为default，负责创建ConnectionBasedClient，表示创建基于Grpc连接的客户端
 //        b、EphemeralIpPortClientFactory：负责创建IpPortBasedClient工厂对象，类型名为ephemeralIpPort，负责创建IpPortBasedClient，表示创建基于IP地址连接的客户端（临时服务实例）

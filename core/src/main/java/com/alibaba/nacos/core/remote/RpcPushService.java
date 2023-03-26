@@ -34,6 +34,15 @@ import java.util.concurrent.Executor;
  * @author liuzunfei
  * @version $Id: PushService.java, v 0.1 2020年07月20日 1:12 PM liuzunfei Exp $
  */
+
+// 基于GRPC协议的服务就是通过RpcPushService来向订阅该服务的客户端发送服务变更的。
+// 推送方式
+//   1)、正常推送：不支持异步和回调处理
+//   2)、带callback推送：
+//      a、根据connectionId找到要推送服务变更的目标客户端服务
+//      b、RPC调用支持异步调用回调处理，将要推送的RPC请求数据ServerRequest（NotifySubscriberRequest）通过异步的方式发送给订阅服务的客户端
+//      c、成功则触发回调的success，异常则触发回调的fail方法
+
 @Service
 public class RpcPushService {
     
