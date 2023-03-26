@@ -55,6 +55,7 @@ public class ClientOperationServiceProxy implements ClientOperationService {
     public void registerInstance(Service service, Instance instance, String clientId) throws NacosException {
         // 根据isEphemeral判断是选择执行临时实例operation还是持久化实例operation
         final ClientOperationService operationService = chooseClientOperationService(instance);
+        // 调用EphemeralIpPortClientManager或者PersistentIpPortClientManager的registerInstance()方法
         operationService.registerInstance(service, instance, clientId);
     }
     

@@ -58,7 +58,8 @@ public class NacosExecuteTaskExecuteEngine extends AbstractNacosTaskExecuteEngin
     public boolean isEmpty() {
         return 0 == size();
     }
-    
+
+    // change、add执行逻辑
     @Override
     public void addTask(Object tag, AbstractExecuteTask task) {
         NacosTaskProcessor processor = getProcessor(tag);
@@ -66,7 +67,13 @@ public class NacosExecuteTaskExecuteEngine extends AbstractNacosTaskExecuteEngin
             processor.process(task);
             return;
         }
+        // 将任务DistroSyncChangeTask、PushExecuteTask等任务交给任务执行处理器TaskExecuteWorker的队列
         TaskExecuteWorker worker = getWorker(tag);
+        // TaskExecuteWorker在初始化的时候会启动一个守护线程InnerWorker
+        // InnerWorker不断从任务队列取出任务，然后执行不同任务的run方法
+        // 例：制定任务的run方法执行DistroClientTransportAgent的数据同步方法
+        //     首先是创建同步数据请求DistroDataRequest，然后向任务指定的目标Nacos服务节点发送同步
+        //     目标Nacos服务DistroDataRequest接收到请求之后，由 DistroDataRequestHandler 来处理，其实就是把同步过来的数据加入到当前节点的数据缓存
         worker.process(task);
     }
     

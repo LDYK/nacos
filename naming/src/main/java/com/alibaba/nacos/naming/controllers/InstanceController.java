@@ -68,10 +68,25 @@ import java.util.Map;
 
 import static com.alibaba.nacos.naming.misc.UtilsAndCommons.DEFAULT_CLUSTER_NAME;
 
+
 /**
  * Instance operation controller.
  *
- * @author nkorange
+ * 请求路径：
+ * 请求参数
+ *     名称	        类型	    是否必选	        描述
+ *     ip	        String	        是	        服务实例IP
+ *     port	        int	            是	        服务实例port
+ *     namespaceId	String	        否	        命名空间ID，默认public
+ *     weight	    double	        否	        权重
+ *     enabled	    boolean	        否	        是否上线（允许被发现）
+ *     healthy	    boolean	        否	        是否健康
+ *     metadata	    String	        否	        扩展信息
+ *     clusterName	String	        否	        集群名
+ *     serviceName	String	        是	        服务名
+ *     groupName	String	        否	        分组名
+ *     ephemeral	boolean	        否	        是否临时实例
+ *
  */
 @RestController
 @RequestMapping(UtilsAndCommons.NACOS_NAMING_CONTEXT + UtilsAndCommons.NACOS_NAMING_INSTANCE_CONTEXT)
@@ -101,7 +116,7 @@ public class InstanceController {
     @PostMapping
     @Secured(action = ActionTypes.WRITE)
     public String register(HttpServletRequest request) throws Exception {
-        //读取请求的namespaceId字段值 默认时public
+        //读取请求的namespaceId字段值，缺省值public
         final String namespaceId = WebUtils
                 .optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
         //读取请求的服务名称字段值，格式要求groupname@@servicename
@@ -112,7 +127,7 @@ public class InstanceController {
         //instanceId 的生成逻辑 格式比如： ip#port#clusterName#serviceName
         final Instance instance = HttpRequestInstanceBuilder.newBuilder()
                 .setDefaultInstanceEphemeral(switchDomain.isDefaultInstanceEphemeral()).setRequest(request).build();
-        //这里 getInstanceOperator() 得到的是 InstanceOperatorClientImpl 类型对象
+        // V1/V2均调用InstanceOperatorClientImpl的registerInstance()方法
         getInstanceOperator().registerInstance(namespaceId, serviceName, instance);
         NotifyCenter.publishEvent(new RegisterInstanceTraceEvent(System.currentTimeMillis(), "", false, namespaceId,
                 NamingUtils.getGroupName(serviceName), NamingUtils.getServiceName(serviceName), instance.getIp(),

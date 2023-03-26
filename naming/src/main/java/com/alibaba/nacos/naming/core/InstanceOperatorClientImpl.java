@@ -71,7 +71,7 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
     //客户端管理器
     private final ClientManager clientManager;
 
-    //客户端操作服务 有2种具体实现
+    // 客户端操作服务 有2种具体实现
     // EphemeralClientOperationServiceImpl
     // PersistenceClientOperationServiceImpl
     private final ClientOperationService clientOperationService;
@@ -117,7 +117,7 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
         createIpPortClientIfAbsent(clientId);
         // 创建Service实例
         Service service = getService(namespaceId, serviceName, ephemeral);
-        // 调用ClientOperationServiceProxy的registerInstance()方法，根据isEphemeral选择调用ClientOperationService的具体实现类
+        // 调用ClientOperationServiceProxy的registerInstance()方法，根据isEphemeral选择对应的实现类EphemeralIpPortClientManager或者PersistentIpPortClientManager
         clientOperationService.registerInstance(service, instance, clientId);
     }
     

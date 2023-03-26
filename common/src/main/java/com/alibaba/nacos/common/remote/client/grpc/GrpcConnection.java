@@ -46,6 +46,9 @@ import java.util.concurrent.TimeoutException;
  * @author liuzunfei
  * @version $Id: GrpcConnection.java, v 0.1 2020年08月09日 1:36 PM liuzunfei Exp $
  */
+
+// GrpcConnection表示一个Grpc连接对象，负责Grpc方式的客户端连接请求和响应处理。
+
 public class GrpcConnection extends Connection {
     
     /**
@@ -66,13 +69,15 @@ public class GrpcConnection extends Connection {
         super(serverInfo);
         this.executor = executor;
     }
-    
+
+    // Grpc普通模式下的请求参数对象
     @Override
     public Response request(Request request, long timeouts) throws NacosException {
         Payload grpcRequest = GrpcUtils.convert(request);
         ListenableFuture<Payload> requestFuture = grpcFutureServiceStub.request(grpcRequest);
         Payload grpcResponse;
         try {
+            // 带超时时间
             grpcResponse = requestFuture.get(timeouts, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw new NacosException(NacosException.SERVER_ERROR, e);
@@ -80,7 +85,8 @@ public class GrpcConnection extends Connection {
     
         return (Response) GrpcUtils.parse(grpcResponse);
     }
-    
+
+    // 支持请求回调处理的Grpc请求（Future模式）
     @Override
     public RequestFuture requestFuture(Request request) throws NacosException {
         Payload grpcRequest = GrpcUtils.convert(request);
@@ -114,17 +120,20 @@ public class GrpcConnection extends Connection {
             }
         };
     }
-    
+
+    // Grpc流式请求处理
     public void sendResponse(Response response) {
         Payload convert = GrpcUtils.convert(response);
         payloadStreamObserver.onNext(convert);
     }
-    
+
+    // Grpc流式请求处理
     public void sendRequest(Request request) {
         Payload convert = GrpcUtils.convert(request);
         payloadStreamObserver.onNext(convert);
     }
-    
+
+    // 异步的请求，并支持RequestCallBack的请求回调（回调根据是否有执行器来决定回调是否异步处理）
     @Override
     public void asyncRequest(Request request, final RequestCallBack requestCallBack) throws NacosException {
         Payload grpcRequest = GrpcUtils.convert(request);

@@ -128,7 +128,10 @@ public class DistroProtocol {
     public void syncToTarget(DistroKey distroKey, DataOperation action, String targetServer, long delay) {
         DistroKey distroKeyWithTarget = new DistroKey(distroKey.getResourceKey(), distroKey.getResourceType(),
                 targetServer);
+        // 创建同步任务DistroDelayTask
         DistroDelayTask distroDelayTask = new DistroDelayTask(distroKeyWithTarget, action, delay);
+        // 放入延时任务执行器执行的任务集合中
+        // 由延时任务执行器NacosDelayTaskExecuteEngine来执行，执行器默认间隔100ms执行一次
         distroTaskEngineHolder.getDelayTaskExecuteEngine().addTask(distroKeyWithTarget, distroDelayTask);
         if (Loggers.DISTRO.isDebugEnabled()) {
             Loggers.DISTRO.debug("[DISTRO-SCHEDULE] {} to {}", distroKey, targetServer);

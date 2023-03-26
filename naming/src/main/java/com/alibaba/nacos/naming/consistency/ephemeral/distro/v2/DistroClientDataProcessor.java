@@ -54,6 +54,9 @@ import java.util.Set;
  *
  * @author xiweng.yy
  */
+
+// DistroClientDataProcessor订阅处理：客户端变更事件、客户端断开连接事件、客户端验证失败事件
+
 public class DistroClientDataProcessor extends SmartSubscriber implements DistroDataStorage, DistroDataProcessor {
     
     public static final String TYPE = "Nacos:Naming:v2:ClientData";
@@ -83,8 +86,11 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
     @Override
     public List<Class<? extends Event>> subscribeTypes() {
         List<Class<? extends Event>> result = new LinkedList<>();
+        // 订阅者DistroClientDataProcessor对ClientEvent.ClientChangedEvent事件进行处理，主要工作就是将注册的客户端信息同步到其他Nacos节点
         result.add(ClientEvent.ClientChangedEvent.class);
+        // 断开连接事件
         result.add(ClientEvent.ClientDisconnectEvent.class);
+        // 验证失败事件
         result.add(ClientEvent.ClientVerifyFailedEvent.class);
         return result;
     }
@@ -121,7 +127,12 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
             distroProtocol.sync(distroKey, DataOperation.DELETE);
         } else if (event instanceof ClientEvent.ClientChangedEvent) {
+            // 订阅ClientEvent.ClientChangedEvent事件并进行处理，主要是将注册的客户端信息同步到其他Nacos节点
+            // clientId格式 ip:port#true
+            // type常量 Nacos:Naming:v2:ClientData
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
+            // 调用调用Distro协议DistroProtocol#sync()方法
+            // 向其他Nacos节点发送同步数据
             distroProtocol.sync(distroKey, DataOperation.CHANGE);
         }
     }

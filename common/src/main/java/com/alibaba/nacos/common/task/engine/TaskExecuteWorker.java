@@ -104,6 +104,8 @@ public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
     /**
      * Inner execute worker.
      */
+    // TaskExecuteWorker在初始化的时候会启动一个守护线程InnerWorker
+    // InnerWorker不断从任务队列取出任务，然后执行不同任务的run方法
     private class InnerWorker extends Thread {
         
         InnerWorker(String name) {

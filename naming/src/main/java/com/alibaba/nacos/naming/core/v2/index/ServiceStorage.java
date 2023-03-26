@@ -58,9 +58,11 @@ public class ServiceStorage {
     private final SwitchDomain switchDomain;
     
     private final NamingMetadataManager metadataManager;
-    
+
+    // 存放服务及对应的服务详细信息
     private final ConcurrentMap<Service, ServiceInfo> serviceDataIndexes;
-    
+
+    // 存放服务及对应拥有的集群集合（一个服务的不同实例可以设置不同的cluster）；
     private final ConcurrentMap<Service, Set<String>> serviceClusterIndex;
     
     public ServiceStorage(ClientServiceIndexesManager serviceIndexesManager, ClientManagerDelegate clientManager,
@@ -79,9 +81,11 @@ public class ServiceStorage {
     }
 
 
-    // 从serviceDataIndexes获取service数据
-    // 如果没有通过getPush构建一个ServiceInfo
-    // ServiceInfo：返回给客户端的服务详情信息
+    // 如果集合serviceDataIndexes中存在，那么直接获取返回
+    // 如果集合serviceDataIndexes中不存在，从ClientServiceIndexesManager中对应的服务的客户端集合中查询对应服务的ClientId
+    // 然后根据clientId找到对应的Client（根据上文的ClientManager介绍，不同实例对应不同的ClientManager，比如EphemeralIpPortClientManager、ConnectionBasedClientManager和PersistentIpPortClientManager）
+    // 然后从对应的Client中查询出对应Client发布（注册）的服务实例，最后组建要查询的服务实例集合返回
+    // 在查询服务实例信息时，如果服务实例对应有metadata，那么就从NamingMetadataManager查找元数据信息作为实例的metadata返回；
     public ServiceInfo getData(Service service) {
         return serviceDataIndexes.containsKey(service) ? serviceDataIndexes.get(service) : getPushData(service);
     }

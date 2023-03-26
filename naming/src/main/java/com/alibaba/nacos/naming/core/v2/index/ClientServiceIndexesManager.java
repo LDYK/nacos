@@ -45,9 +45,11 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Component
 public class ClientServiceIndexesManager extends SmartSubscriber {
-    
+
+    // 用于存放注册的服务及服务对应的服务客户端（一般就是clientId）
     private final ConcurrentMap<Service, Set<String>> publisherIndexes = new ConcurrentHashMap<>();
-    
+
+    // 用于存放服务及对应订阅该服务的客户端信息（一般就是clientId）
     private final ConcurrentMap<Service, Set<String>> subscriberIndexes = new ConcurrentHashMap<>();
     
     public ClientServiceIndexesManager() {
@@ -76,14 +78,20 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
             publisherIndexes.remove(service);
         }
     }
-    
+
+    // 该类作为一个订阅者，可以订阅多个事件
     @Override
     public List<Class<? extends Event>> subscribeTypes() {
         List<Class<? extends Event>> result = new LinkedList<>();
+        // 客户端注册事件
         result.add(ClientOperationEvent.ClientRegisterServiceEvent.class);
+        // 客户端取消注册事件
         result.add(ClientOperationEvent.ClientDeregisterServiceEvent.class);
+        // 客户端订阅时间
         result.add(ClientOperationEvent.ClientSubscribeServiceEvent.class);
+        // 客户端取消订阅时间
         result.add(ClientOperationEvent.ClientUnsubscribeServiceEvent.class);
+        // 客户端断开连接事件
         result.add(ClientEvent.ClientDisconnectEvent.class);
         return result;
     }
@@ -96,7 +104,9 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
             handleClientOperation((ClientOperationEvent) event);
         }
     }
-    
+
+    // 接收到客户端断开连接事件后，找到该客户端的所有订阅服务，从订阅服务的客户端集合中删除该客户端
+    // 接收到客户端断开连接事件后，找到该客户端的的注册服务，向服务的客户端集合publisherIndexes删除该注册客户端，然后发布事件ServiceEvent.ServiceChangedEvent
     private void handleClientDisconnect(ClientEvent.ClientDisconnectEvent event) {
         Client client = event.getClient();
         for (Service each : client.getAllSubscribeService()) {
@@ -118,12 +128,16 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
         Service service = event.getService();
         String clientId = event.getClientId();
         if (event instanceof ClientOperationEvent.ClientRegisterServiceEvent) {
+            // 接收到客户端注册服务事件后，向服务对应的客户端集合publisherIndexes添加该注册客户端，既然该服务有新的客户端注册，说明服务发生了变更，所以还会发布服务变更事件
             addPublisherIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientDeregisterServiceEvent) {
+            // 接收到客户端取消注册服务事件后，向服务对应的客户端集合publisherIndexes删除该注册客户端，既然该服务有客户端移除注册，说明服务发生了变更，所以还会发布服务变更事件
             removePublisherIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientSubscribeServiceEvent) {
+            // 接收到客户端订阅服务事件后，向订阅该服务的客户端集合subscriberIndexes添加该服务的订阅客户端，如果首次添加（即该客户端首次订阅）就发布服务订阅变更事件
             addSubscriberIndexes(service, clientId);
         } else if (event instanceof ClientOperationEvent.ClientUnsubscribeServiceEvent) {
+            // 接收到客户端取消订阅服务事件后，向订阅该服务的客户端集合subscriberIndexes删除该服务的订阅客户端
             removeSubscriberIndexes(service, clientId);
         }
     }

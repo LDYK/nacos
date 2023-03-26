@@ -47,6 +47,9 @@ import java.util.stream.Stream;
  *
  * @author xiweng.yy
  */
+
+// 订阅处理服务变更事件、服务订阅事件
+
 @org.springframework.stereotype.Service
 public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements NamingSubscriberService {
     
@@ -66,10 +69,10 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
             NamingMetadataManager metadataManager, PushExecutorDelegate pushExecutor, SwitchDomain switchDomain) {
         this.clientManager = clientManager;
         this.indexesManager = indexesManager;
+        // 延迟任务执行器，默认100ms执行一次
         this.delayTaskEngine = new PushDelayTaskExecuteEngine(clientManager, indexesManager, serviceStorage,
                 metadataManager, pushExecutor, switchDomain);
         NotifyCenter.registerSubscriber(this, NamingEventPublisherFactory.getInstance());
-        
     }
     
     @Override
@@ -87,15 +90,15 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
     public Collection<Subscriber> getSubscribers(Service service) {
         Collection<Subscriber> result = new HashSet<>();
         //客户端id格式 ip:port#(是否是临时节点的标志true|false)
-        //indexesManager.getAllClientsSubscribeService 查询服务的所有订阅客户端
+        //indexesManager.getAllClientsSubscribeService 查询订阅该服务的所有客户端集合
         for (String each : indexesManager.getAllClientsSubscribeService(service)) {
+            // 循环每个客户端，取出每个客户端的订阅信息
             result.add(clientManager.getClient(each).getSubscriber(service));
         }
         return result;
     }
 
-    //模糊匹配所有只要包含 服务名称 和 包含组名的所有的serveice 列表
-    //返回所有满足匹配条件的service 列表的 所有订阅者 列表
+    // 查询指定namespaceId和服务名下，订阅该服务的订阅信息集合
     @Override
     public Collection<Subscriber> getFuzzySubscribers(String namespaceId, String serviceName) {
         Collection<Subscriber> result = new HashSet<>();
@@ -126,11 +129,16 @@ public class NamingSubscriberServiceV2Impl extends SmartSubscriber implements Na
     
     @Override
     public void onEvent(Event event) {
-        //  ServiceChangedEvent 事件和 ServiceSubscribedEvent 事件唯一的区别是ServiceChangedEvent通知所有的订阅者 ServiceSubscribedEvent只推送给其中一个订阅者
+        //  ServiceChangedEvent 事件和 ServiceSubscribedEvent 事件唯一的区别是
+        //  ServiceChangedEvent 通知所有的订阅者
+        //  ServiceSubscribedEvent 只推送给其中一个订阅者
         if (event instanceof ServiceEvent.ServiceChangedEvent) {
             // 服务变更会推送给所有的订阅者
             ServiceEvent.ServiceChangedEvent serviceChangedEvent = (ServiceEvent.ServiceChangedEvent) event;
             Service service = serviceChangedEvent.getService();
+            // 创建推送延迟任务PushDelayTask，默认设置的延迟时间500ms
+            // 加入到延迟任务执行器 PushDelayTaskExecuteEngine（父类NacosDelayTaskExecuteEngine）的延迟任务队列
+            // 延迟任务执行器 PushDelayTaskExecuteEngine 的执行线程是 ProcessRunnable，默认间隔100ms执行一次
             delayTaskEngine.addTask(service, new PushDelayTask(service, PushConfig.getInstance().getPushTaskDelay()));
             MetricsMonitor.incrementServiceChangeCount(service.getNamespace(), service.getGroup(), service.getName());
         } else if (event instanceof ServiceEvent.ServiceSubscribedEvent) {

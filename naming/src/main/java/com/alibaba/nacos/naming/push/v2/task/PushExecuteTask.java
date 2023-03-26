@@ -52,11 +52,14 @@ public class PushExecuteTask extends AbstractExecuteTask {
         this.delayTaskEngine = delayTaskEngine;
         this.delayTask = delayTask;
     }
-    
+
+    // 执行推送任务
     @Override
     public void run() {
         try {
+            // 封装当前推送任务指定服务的服务推送对象PushDataWrapper，主要就是服务的全量信息（包括服务实例）
             PushDataWrapper wrapper = generatePushData();
+            // 找到当前推送任务指定服务对应的订阅客户端集合
             ClientManager clientManager = delayTaskEngine.getClientManager();
             for (String each : getTargetClientIds()) {
                 Client client = clientManager.getClient(each);
@@ -64,7 +67,11 @@ public class PushExecuteTask extends AbstractExecuteTask {
                     // means this client has disconnect
                     continue;
                 }
+                // 从每个订阅客户端对应的Client中获取该客户端订阅的当前推送任务指定的服务的订阅Subscriber信息
                 Subscriber subscriber = clientManager.getClient(each).getSubscriber(service);
+                // 创建一个推送任务对象NamingPushCallback
+                // 选择推送执行处理器，根据clientId所属的特性（ConnectionBasedClient和IpPortBasedClient）不同选择不同的PushExecutor，将服务推送对象PushDataWrapper数据推送到订阅该服务的客户端
+                // 数据推动成功后，在NamingPushCallback中处理回调，默认在NacosMonitorPushResultHook里面记录监控指标相关信息
                 delayTaskEngine.getPushExecutor().doPushWithCallback(each, subscriber, wrapper,
                         new ServicePushCallback(each, subscriber, wrapper.getOriginalData(), delayTask.isPushToAll()));
             }

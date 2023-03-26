@@ -119,7 +119,8 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
         tasks.clear();
         processingExecutor.shutdown();
     }
-    
+
+    // 添加任务到map集合中
     @Override
     public void addTask(Object key, AbstractDelayTask newTask) {
         lock.lock();
@@ -137,13 +138,17 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
     /**
      * process tasks in execute engine.
      */
+    // 处理add到tasks中的任务
     protected void processTasks() {
+        // 获取所有tasks的keys
         Collection<Object> keys = getAllTaskKeys();
         for (Object taskKey : keys) {
+            // 从任务集合tasks中移除
             AbstractDelayTask task = removeTask(taskKey);
             if (null == task) {
                 continue;
             }
+            // 获取任务延时任务处理器，返回 DistroDelayTaskProcessor
             NacosTaskProcessor processor = getProcessor(taskKey);
             if (null == processor) {
                 getEngineLog().error("processor not found for task, so discarded. " + task);
@@ -151,6 +156,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             }
             try {
                 // ReAdd task if process failed
+                // 调用DistroDelayTaskProcessor中的process方法，如果执行失败重新添加到tasks集合中
                 if (!processor.process(task)) {
                     retryFailedTask(taskKey, task);
                 }

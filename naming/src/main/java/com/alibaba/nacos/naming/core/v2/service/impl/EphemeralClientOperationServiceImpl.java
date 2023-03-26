@@ -65,10 +65,11 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
         }
         //获取之前注册过的IpPortBasedClient对象
         Client client = clientManager.getClient(clientId);
+        // 校验客户端是否合法
         if (!clientIsLegal(client, clientId)) {
             return;
         }
-        //从instance对象创建InstancePublishInfo
+        // 构建服务实例发布对象InstancePublishInfo
         //注意包括ip port healthy 3个属性 是instance的属性的子集
         InstancePublishInfo instanceInfo = getPublishInfo(instance);
         client.addServiceInstance(singleton, instanceInfo);
@@ -77,8 +78,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
         // 发布客户端注册事件，触发更新 publisherIndexes（保存 service => clientId 的 Map<Service, Set<String>>，即哪些客户端注册了这个服务的索引），同时也触发一个 ServiceChangedEvent，该事件负责向监听该服务的客户端进行推送
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientRegisterServiceEvent(singleton, clientId));
         // 发布处理元数据事件，Nacos 在 2.0 中将元数据与基础数据拆分开，分为不同的处理流程
-        NotifyCenter
-                .publishEvent(new MetadataEvent.InstanceMetadataEvent(singleton, instanceInfo.getMetadataId(), false));
+        NotifyCenter.publishEvent(new MetadataEvent.InstanceMetadataEvent(singleton, instanceInfo.getMetadataId(), false));
     }
     
     @Override

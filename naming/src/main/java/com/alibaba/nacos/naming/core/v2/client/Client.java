@@ -58,7 +58,7 @@ import java.util.Collection;
 //    2)、EphemeralIpPortClientManager：对客户端服务基于IP Port模式的临时服务管理
 //    3)、PersistentIpPortClientManager：对客户端服务基于持久化模式的服务管理，同EphemeralIpPortClientManager类似
 // 5、客户端存储：针对临时服务实例，客户端服务注册、服务订阅相关的信息会在Nacos服务端进行存储
-//    1)、ClientServiceIndexesManager：Index管理，存储服务以及订阅该服务的相关信息
+//    1)、ClientServiceIndexesManager：Index管理，存储服务以及订阅该服务的相关信息，也是一个订阅者
 //    2)、ServiceStorage：在Nacos服务端，服务及对应服务实例等相关信息就是存放在类ServiceStorage里面
 
 
