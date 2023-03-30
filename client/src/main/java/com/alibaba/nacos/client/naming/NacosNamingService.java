@@ -149,7 +149,9 @@ public class NacosNamingService implements NamingService {
 
     /**
      * 参考文档路径：https://blog.csdn.net/wuchsh123/article/details/124911607?spm=1001.2014.3001.5502
-     * 注册中心入口
+     *
+     * Nacos Client发送注册请求
+     *
      * 1、解析spring-cloud-alibaba-nacos-discovery.jar中的spring.factories文件，引入了NacosDiscoveryAutoConfiguration、NacosAutoServiceRegistration两个bean
      *  1)、NacosDiscoveryAutoConfiguration加载了NacosDiscoveryProperties，解析并存储spring.cloud.nacos.discovery配置信息
      *  2)、NacosServiceRegistryAutoConfiguration创建了NacosServiceRegistry、NacosRegistration、NacosAutoServiceRegistration等3个Bean。
@@ -162,6 +164,11 @@ public class NacosNamingService implements NamingService {
      * 5、NacosServiceRegistry类的register()方法先配置文件中配置的服务信息（服务名、IP、Port等等）封装到instance对象中，再调用NacosNamingService类的registerInstance()方法，进行实例注册操作。
      * 6、【正式进入Nacos源码】NacosNamingService类的registerInstance()方法调用NamingClientProxyDelegate类的registerService()方法。NacosNamingService的init()方法根据配置提前初始化clientProxy等实例。
      * 7、NamingClientProxyDelegate类的registerService()方法调用getExecuteClientProxy()方法获取实体类，再调用registerService()方法注册。
+     *
+     * Nacos Server处理客户端的注册请求
+     *
+     * 1、InstanceRequestHandler#registerInstance()
+     *
      **/
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
