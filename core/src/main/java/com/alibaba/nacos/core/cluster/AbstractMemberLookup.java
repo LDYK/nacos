@@ -52,6 +52,7 @@ public abstract class AbstractMemberLookup implements MemberLookup {
     @Override
     public void start() throws NacosException {
         if (start.compareAndSet(false, true)) {
+            // 文件、地址、单机
             doStart();
         }
     }

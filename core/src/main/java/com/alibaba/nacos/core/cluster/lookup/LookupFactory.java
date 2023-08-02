@@ -30,6 +30,8 @@ import java.util.Objects;
 /**
  * An addressing pattern factory, responsible for the creation of all addressing patterns.
  *
+ * 寻址模式工厂，负责创建所有寻址模式。
+ *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 public final class LookupFactory {
@@ -50,11 +52,14 @@ public final class LookupFactory {
      */
     public static MemberLookup createLookUp(ServerMemberManager memberManager) throws NacosException {
         if (!EnvUtil.getStandaloneMode()) {
+            // 寻址类型可以通过「nacos.core.member.lookup.type」参数指定，取值为「file」或者「address-server」
             String lookupType = EnvUtil.getProperty(LOOKUP_MODE_TYPE);
             LookupType type = chooseLookup(lookupType);
+            // 根据不同的类型实例化不同的MemberLookup分别为：FileConfigMemberLookup 或 AddressServerMemberLookup
             LOOK_UP = find(type);
             currentLookupType = type;
         } else {
+            // 如果采用单机（standalone）模式实例化StandaloneMemberLookup
             LOOK_UP = new StandaloneMemberLookup();
         }
         LOOK_UP.injectMemberManager(memberManager);

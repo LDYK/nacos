@@ -56,6 +56,7 @@ public class DistroProtocol {
         this.memberManager = memberManager;
         this.distroComponentHolder = distroComponentHolder;
         this.distroTaskEngineHolder = distroTaskEngineHolder;
+        // 开启Distro任务
         startDistroTask();
     }
     
@@ -64,7 +65,10 @@ public class DistroProtocol {
             isInitialized = true;
             return;
         }
+        // 加载DistroVerifyTimedTask
+        // 每隔5s将自己本地数据与其他Nacos节点数据进行校验
         startVerifyTask();
+        // 加载DistroLoadDataTask任务
         startLoadTask();
     }
     
@@ -83,8 +87,11 @@ public class DistroProtocol {
         GlobalExecutor.submitLoadDataTask(
                 new DistroLoadDataTask(memberManager, distroComponentHolder, DistroConfig.getInstance(), loadCallback));
     }
-    
+
+    // 定时任务
+    // 每隔5s将自己本地数据与其他Nacos节点数据进行校验
     private void startVerifyTask() {
+        // DistroVerifyTimedTask 定时延迟任务，频率5s，进行节点之前的数据验证
         GlobalExecutor.schedulePartitionDataTimedSync(new DistroVerifyTimedTask(memberManager, distroComponentHolder,
                         distroTaskEngineHolder.getExecuteWorkersManager()),
                 DistroConfig.getInstance().getVerifyIntervalMillis());

@@ -81,7 +81,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
  *
  * 初始化的集群列表是一个静态的列表，集群服务器之间的感知通过节点心跳任务主动上报本节点的信息。根据返回结果更新节点的状态信息，作为请求的接收方及时更新本地集群的节点信息。
  * ServerMemberManager在服务启动的时候会启动定时任务每隔2秒发送本节点的信息给集群内其他机器，发送的数据是当前节点的Member 对象序列化后的内容。通过post 的异步回调方式的给集群列表所有机器循环发送.
- *
+ * Nacos提供了两种寻址模式，分别为文件寻址（FileConfigMemberLookup）和地址服务器（AddressServerMemberLookup）寻址。如果单机模式（StandaloneMemberLookup）启动就本机一个节点也无所谓寻址。
  */
 @Component(value = "serverMemberManager")
 public class ServerMemberManager implements ApplicationListener<WebServerInitializedEvent> {
@@ -151,22 +151,27 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     protected void init() throws NacosException {
         Loggers.CORE.info("Nacos-related cluster resource initialization");
-        // 从配置获取端口号，默认8848
+        // 通过server.port指定服务端端口，默认8848
         this.port = EnvUtil.getProperty(SERVER_PORT_PROPERTY, Integer.class, DEFAULT_SERVER_PORT);
-        // address格式：ip:port
+        // 获取本地地址，address格式：ip:port
         this.localAddress = InetUtils.getSelfIP() + ":" + port;
+        // 拆分IP和Port组装Member对象
         this.self = MemberUtil.singleParse(this.localAddress);
+        // 设置版本取自pom文件 version=${project.version}
         this.self.setExtendVal(MemberMetaDataConstants.VERSION, VersionUtils.version);
         
         // init abilities.
         this.self.setAbilities(initMemberAbilities());
-        
+
+        // 缓存本节点信息
         serverList.put(self.getAddress(), self);
         
         // register NodeChangeEvent publisher to NotifyManager
+        // 发布MembersChangeEvent事件并订阅IPChangeEvent事件
         registerClusterEvent();
         
         // Initializes the lookup mode
+        // 初始化寻址模式适配器并启动；寻址模式分别为单机、配置文件、地址服务
         initAndStartLookup();
         
         if (serverList.isEmpty()) {
@@ -186,12 +191,14 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     private void registerClusterEvent() {
         // Register node change events
+        // 发布MembersChangeEvent事件
         NotifyCenter.registerToPublisher(MembersChangeEvent.class,
                 EnvUtil.getProperty(MEMBER_CHANGE_EVENT_QUEUE_SIZE_PROPERTY, Integer.class,
                         DEFAULT_MEMBER_CHANGE_EVENT_QUEUE_SIZE));
         
         // The address information of this node needs to be dynamically modified
         // when registering the IP change of this node
+        // 订阅IPChangeEvent事件
         NotifyCenter.registerSubscriber(new Subscriber<InetUtils.IPChangeEvent>() {
             @Override
             public void onEvent(InetUtils.IPChangeEvent event) {
@@ -218,8 +225,10 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     }
     
     private void initAndStartLookup() throws NacosException {
+        // 获取寻址模式适配器：文件寻址(FileConfigMemberLookup)、地址服务器寻址(AddressServerMemberLookup)、单机(StandaloneMemberLookup)
         this.lookup = LookupFactory.createLookUp(this);
         isUseAddressServer = this.lookup.useAddressServer();
+        // 启动寻址适配器 AbstractMemberLookup#start()
         this.lookup.start();
     }
     
